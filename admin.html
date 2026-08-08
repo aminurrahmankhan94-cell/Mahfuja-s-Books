@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - Literary Vault</title>
+  <title>Super Admin Dashboard - Literary Vault</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <nav class="navbar">
-    <div class="brand-logo rainbow-text">⚡ Admin Dashboard</div>
-    <a href="index.html" class="nav-btn">📖 Reader Portal</a>
+    <div class="brand-logo rainbow-text">⚡ Super Admin Control Panel</div>
+    <a href="index.html" class="btn-primary">📖 Reader Portal</a>
   </nav>
 
   <div class="container">
     
     <!-- Login Screen -->
     <div id="loginSection" class="article-card" style="max-width:400px; margin: 50px auto;">
-      <h2 style="margin-bottom:15px;" class="rainbow-text">Admin Login</h2>
+      <h2 style="margin-bottom:15px;" class="rainbow-text">Admin Authentication</h2>
       <div class="form-group">
         <label>User ID</label>
         <input type="text" id="adminId" class="form-control" placeholder="Enter ID">
@@ -26,7 +26,7 @@
         <label>Password</label>
         <input type="password" id="adminPass" class="form-control" placeholder="Enter Password">
       </div>
-      <button onclick="handleLogin()" class="submit-btn">Login to Portal</button>
+      <button onclick="handleLogin()" class="submit-btn">Login to Dashboard</button>
     </div>
 
     <!-- Admin Panel (Logged In) -->
@@ -48,49 +48,50 @@
         </div>
       </div>
 
-      <!-- Add New Article Form -->
+      <!-- Publish Form -->
       <div class="article-card">
         <h2 style="margin-bottom:20px;" class="rainbow-text">✍️ Publish New Literary Work</h2>
         
         <div class="form-group">
           <label>Title</label>
-          <input type="text" id="title" class="form-control" placeholder="Enter title">
+          <input type="text" id="title" class="form-control" placeholder="Enter post title">
         </div>
 
         <div class="form-group">
           <label>Author / Poet Name</label>
-          <input type="text" id="author" class="form-control" placeholder="Enter author name">
+          <input type="text" id="author" class="form-control" placeholder="Enter author or poet name">
         </div>
 
         <div class="form-group">
           <label>Catalog / Category</label>
           <select id="subject" class="form-control">
-            <option value="Story">Story</option>
-            <option value="Poem">Poem</option>
-            <option value="Novel">Novel</option>
-            <option value="Essay">Essay</option>
-            <option value="Drama">Drama</option>
+            <option value="Story">Story (গল্প)</option>
+            <option value="Poem">Poem (কবিতা)</option>
+            <option value="Novel">Novel (উপন্যাস)</option>
+            <option value="Essay">Essay (প্রবন্ধ)</option>
+            <option value="Drama">Drama (নাটক)</option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Full Content</label>
-          <textarea id="content" class="form-control" rows="8" placeholder="Write your text here..."></textarea>
+          <textarea id="content" class="form-control" rows="8" placeholder="Write full article here..."></textarea>
         </div>
 
         <button onclick="publishArticle()" id="pubBtn" class="submit-btn">Publish Work</button>
       </div>
 
-      <!-- Article Manager Table -->
+      <!-- Manage Posts, Comments & Likes Table -->
       <div class="article-card">
-        <h2>📂 Manage Uploaded Posts</h2>
+        <h2>🛠️ Manage Posts & Moderate Comments</h2>
         <table class="admin-table">
           <thead>
             <tr>
               <th>Title</th>
               <th>Catalog</th>
-              <th>Author</th>
-              <th>Action</th>
+              <th>Likes</th>
+              <th>Comments</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="adminTableBody"></tbody>
@@ -125,7 +126,7 @@
         document.getElementById('adminPanel').style.display = 'block';
         loadAdminData();
       } else {
-        alert("Invalid Admin Credentials!");
+        alert("Invalid Credentials!");
       }
     }
 
@@ -135,10 +136,10 @@
       const subject = document.getElementById('subject').value;
       const content = document.getElementById('content').value.trim();
 
-      if(!title || !content) return alert("Please enter Title and Content!");
+      if(!title || !content) return alert("Title and Content are required!");
 
       db.collection("articles").add({
-        title, author: author || "Anonymous", subject, content,
+        title, author: author || "Anonymous Author", subject, content,
         likes: 0, comments: [], createdAt: new Date()
       }).then(() => {
         alert("🎉 Article published successfully!");
@@ -157,15 +158,37 @@
         snapshot.forEach(doc => {
           count++;
           const data = doc.data();
-          tLikes += (data.likes || 0);
-          tComments += (data.comments ? data.comments.length : 0);
+          const likes = data.likes || 0;
+          const comments = data.comments || [];
+          tLikes += likes;
+          tComments += comments.length;
 
           tbody.innerHTML += `
             <tr>
-              <td><strong>${data.title}</strong></td>
+              <td><strong>${data.title}</strong><br><small style="color:#94a3b8;">By ${data.author || 'Anon'}</small></td>
               <td>${data.subject}</td>
-              <td>${data.author || 'N/A'}</td>
-              <td><button class="btn-danger" onclick="deleteArticle('${doc.id}')">Delete</button></td>
+              <td>
+                ${likes} ❤️ 
+                <button class="btn-danger" style="padding:2px 6px; font-size:10px;" onclick="resetLikes('${doc.id}')">Reset</button>
+              </td>
+              <td>
+                ${comments.length} 💬
+                <details>
+                  <summary style="cursor:pointer; color:#38bdf8; font-size:12px;">View & Delete</summary>
+                  <div style="margin-top:5px; background:#090d16; padding:8px; border-radius:6px;">
+                    ${comments.length === 0 ? '<small>No comments</small>' : ''}
+                    ${comments.map((c, idx) => `
+                      <div style="font-size:11px; margin-bottom:4px; display:flex; justify-between; align-items:center;">
+                        <span><strong>${c.name}:</strong> ${c.text}</span>
+                        <button class="btn-danger" style="padding:1px 4px; font-size:9px;" onclick="deleteComment('${doc.id}', ${idx})">❌</button>
+                      </div>
+                    `).join('')}
+                  </div>
+                </details>
+              </td>
+              <td>
+                <button class="btn-danger" onclick="deleteArticle('${doc.id}')">Delete Post</button>
+              </td>
             </tr>
           `;
         });
@@ -176,10 +199,25 @@
       });
     }
 
+    // Super Admin Control Operations
     function deleteArticle(id) {
-      if(confirm("Are you sure you want to delete this post?")) {
-        db.collection("articles").doc(id).delete().then(() => {
-          alert("Post deleted successfully!");
+      if(confirm("Are you sure you want to delete this post entirely?")) {
+        db.collection("articles").doc(id).delete();
+      }
+    }
+
+    function resetLikes(id) {
+      if(confirm("Reset likes to 0 for this post?")) {
+        db.collection("articles").doc(id).update({ likes: 0 });
+      }
+    }
+
+    function deleteComment(postId, commentIndex) {
+      if(confirm("Delete this specific comment?")) {
+        db.collection("articles").doc(postId).get().then(doc => {
+          let comments = doc.data().comments || [];
+          comments.splice(commentIndex, 1);
+          db.collection("articles").doc(postId).update({ comments: comments });
         });
       }
     }
