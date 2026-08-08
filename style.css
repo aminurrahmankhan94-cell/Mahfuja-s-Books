@@ -1,59 +1,208 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: 'Segoe UI', Arial, sans-serif;
-  background-color: #f4f6f9;
-  margin: 0;
-  padding: 20px;
-  color: #333;
+  background-color: #f1f5f9;
+  color: #1e293b;
+  min-height: 100vh;
+}
+
+.navbar {
+  background-color: #0f172a;
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.nav-links a {
+  color: #cbd5e1;
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.nav-links a:hover, .nav-links a.active-btn {
+  background-color: #334155;
+  color: white;
+}
+
+.nav-links .admin-btn {
+  background-color: #2563eb;
+  color: white;
+  font-weight: 500;
+}
+
+.nav-links .admin-btn:hover {
+  background-color: #1d4ed8;
 }
 
 .container {
-  max-width: 800px;
-  margin: auto;
+  max-width: 850px;
+  margin: 30px auto;
+  padding: 0 15px;
 }
 
-h1 {
-  text-align: center;
-  color: #2c3e50;
+.search-section {
+  margin-bottom: 25px;
 }
 
-input, textarea {
+#searchInput {
   width: 100%;
-  padding: 12px;
-  margin: 8px 0 15px 0;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-sizing: border-box;
+  padding: 14px 18px;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
   font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+  background-color: white;
 }
 
-button {
-  background-color: #27ae60;
-  color: white;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-  width: 100%;
-}
-
-button:hover {
-  background-color: #219150;
+#searchInput:focus {
+  border-color: #2563eb;
 }
 
 .card {
   background: white;
-  padding: 20px;
-  margin-bottom: 15px;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+}
+
+.login-card {
+  max-width: 450px;
+  margin: 40px auto;
+}
+
+.subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 5px;
+  margin-bottom: 20px;
+}
+
+.input-group {
+  margin-bottom: 18px;
+}
+
+.input-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+input[type="text"], input[type="password"], textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  font-size: 15px;
+  outline: none;
+  background-color: #f8fafc;
+}
+
+input:focus, textarea:focus {
+  border-color: #2563eb;
+  background-color: #fff;
+}
+
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  color: white;
+  width: 100%;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-success {
+  background-color: #16a34a;
+  color: white;
+  width: 100%;
+}
+
+.btn-success:hover {
+  background-color: #15803d;
+}
+
+.btn-danger {
+  background-color: #dc2626;
+  color: white;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 15px;
+}
+
+.article-card {
+  background: white;
+  padding: 22px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+  border-left: 5px solid #2563eb;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+
+.article-title {
+  font-size: 20px;
+  color: #0f172a;
+  margin-bottom: 8px;
 }
 
 .tag {
-  background: #e0f2fe;
-  color: #0369a1;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: bold;
+  display: inline-block;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
 }
+
+.article-content {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #334155;
+  white-space: pre-line;
+}
+ 
