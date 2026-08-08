@@ -9,11 +9,41 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
 
+let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 
-// Load Articles
+// Google Authentication Handlers
+auth.onAuthStateChanged((user) => {
+  currentUser = user;
+  const loginBtn = document.getElementById('loginBtn');
+  const userBadge = document.getElementById('userBadge');
+
+  if (user) {
+    loginBtn.style.display = 'none';
+    userBadge.style.display = 'flex';
+    document.getElementById('userName').innerText = user.displayName.split(' ')[0];
+    document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/30';
+  } else {
+    loginBtn.style.display = 'flex';
+    userBadge.style.display = 'none';
+  }
+});
+
+function googleSignIn() {
+  auth.signInWithPopup(googleProvider).catch((error) => {
+    alert("Sign-in Failed: " + error.message);
+  });
+}
+
+function googleSignOut() {
+  auth.signOut();
+}
+
+// Fetch and Render Articles
 db.collection("articles").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
   allArticles = [];
   snapshot.forEach((doc) => {
@@ -66,12 +96,15 @@ function renderArticles() {
 
         <div id="comments-${art.id}" class="comments-container">
           <div class="comment-input-box">
-            <input type="text" id="input-name-${art.id}" placeholder="Your Name">
-            <input type="text" id="input-text-${art.id}" placeholder="Add a comment...">
-            <button class="nav-btn" onclick="addComment('${art.id}')">Post</button>
+            <input type="text" id="input-text-${art.id}" placeholder="${currentUser ? 'Add a public comment...' : 'Sign in with Google to comment'}">
+            <button class="btn-primary" onclick="addComment('${art.id}')">Post</button>
           </div>
           <div class="comment-list">
-            ${comments.map(c => `<div class="comment-item"><strong>${escapeHtml(c.name)}:</strong> ${escapeHtml(c.text)}</div>`).join('')}
+            ${comments.map(c => `
+              <div class="comment-item">
+                <span><strong class="comment-user">${escapeHtml(c.name)}:</strong> ${escapeHtml(c.text)}</span>
+              </div>
+            `).join('')}
           </div>
         </div>
       </div>
@@ -90,6 +123,13 @@ document.getElementById('searchInput').addEventListener('input', renderArticles)
 
 // Like Functionality
 function likePost(id, currentLikes) {
+  if (!currentUser) {
+    if(confirm("Please Sign-In with Google to Like posts! Would you like to sign in now?")) {
+      googleSignIn();
+    }
+    return;
+  }
+
   db.collection("articles").doc(id).update({
     likes: currentLikes + 1
   });
@@ -102,21 +142,26 @@ function toggleComments(id) {
 }
 
 function addComment(id) {
-  const nameInput = document.getElementById(`input-name-${id}`);
+  if (!currentUser) {
+    if(confirm("Please Sign-In with Google to Comment! Would you like to sign in now?")) {
+      googleSignIn();
+    }
+    return;
+  }
+
   const textInput = document.getElementById(`input-text-${id}`);
-  
-  if(!nameInput.value.trim() || !textInput.value.trim()) return alert("Please fill both name and comment!");
+  if (!textInput.value.trim()) return alert("Please enter a comment!");
 
   const newComment = {
-    name: nameInput.value.trim(),
+    name: currentUser.displayName || "Reader",
+    uid: currentUser.uid,
     text: textInput.value.trim(),
-    date: new Date().toISOString()
+    createdAt: new Date().toISOString()
   };
 
   db.collection("articles").doc(id).update({
     comments: firebase.firestore.FieldValue.arrayUnion(newComment)
   }).then(() => {
-    nameInput.value = '';
     textInput.value = '';
   });
 }
@@ -126,7 +171,7 @@ function escapeHtml(text) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/* Floating AI Chatbot Assistant */
+/* Floating AI Chatbot */
 function toggleAIChat() {
   const box = document.getElementById('aiChatBox');
   box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
@@ -148,11 +193,11 @@ function sendChatMessage() {
   setTimeout(() => {
     let reply = "I am LitAI! I can help you navigate through our stories, poems, and essays.";
     if(query.includes('hello') || query.includes('hi')) reply = "Hello reader! Looking for a specific story or poem today?";
-    else if(query.includes('poem') || query.includes('poetry')) reply = `We have ${allArticles.filter(a => a.subject === 'Poem').length} poem(s) in our gallery! Use the 'Poems' tab to read them.`;
+    else if(query.includes('poem')) reply = `We have ${allArticles.filter(a => a.subject === 'Poem').length} poem(s) in our gallery!`;
     else if(query.includes('story')) reply = `We have ${allArticles.filter(a => a.subject === 'Story').length} story(ies) available.`;
-    else if(query.includes('recommend')) reply = allArticles.length > 0 ? `I recommend reading "${allArticles[0].title}" by ${allArticles[0].author || 'the author'}!` : "Add some writings first!";
+    else if(query.includes('recommend')) reply = allArticles.length > 0 ? `Check out "${allArticles[0].title}" by ${allArticles[0].author || 'the author'}!` : "More posts coming soon!";
 
     body.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
     body.scrollTop = body.scrollHeight;
-  }, 500);
+  }, 400);
 }
