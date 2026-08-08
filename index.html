@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Literary Gallery - Reader's Portal</title>
+  <title>Literary Vault - Modern Reader Portal</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -12,18 +12,29 @@
   <!-- Navbar -->
   <nav class="navbar">
     <div class="brand-logo rainbow-text">✨ Literary Vault</div>
-    <a href="admin.html" class="nav-btn">🔑 Admin Portal</a>
+    
+    <div class="nav-actions">
+      <div id="userBadge" class="user-profile-badge" style="display: none;">
+        <img id="userAvatar" src="" alt="User">
+        <span id="userName">Reader</span>
+        <button onclick="googleSignOut()" class="btn-danger" style="padding: 2px 8px; margin-left: 5px;">Logout</button>
+      </div>
+
+      <button id="loginBtn" onclick="googleSignIn()" class="btn-primary btn-google">
+        🔑 Reader Sign-In
+      </button>
+
+      <a href="admin.html" class="btn-primary" style="background:#7f00ff;">Portal Admin</a>
+    </div>
   </nav>
 
   <div class="container">
-    <!-- Hero Section -->
+    <!-- Hero Header -->
     <h1 class="hero-title rainbow-text">Explore Literary Masterpieces</h1>
-    <p class="hero-subtitle">Discover poems, stories, novels, and essays curated by the author.</p>
+    <p class="hero-subtitle">Read freely. Sign in with Google to Like and Comment!</p>
 
-    <!-- Search Box -->
-    <div class="search-container">
-      <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by title, subject, or author name...">
-    </div>
+    <!-- Search Bar -->
+    <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by title, subject, or author name...">
 
     <!-- Catalogs / Categories -->
     <div class="catalog-tabs">
@@ -35,7 +46,7 @@
       <button class="tab-btn" onclick="filterCategory('Drama')">🎭 Drama</button>
     </div>
 
-    <!-- 3D Book Flip Loading Scene -->
+    <!-- 3D Book Flip Loading Animation -->
     <div id="bookLoader" class="book-loader-container">
       <div class="book">
         <div class="page"></div>
@@ -45,30 +56,31 @@
       <p style="margin-top: 15px; color: #94a3b8; font-size: 14px;">Turning pages...</p>
     </div>
 
-    <!-- Articles Grid -->
+    <!-- Articles Container -->
     <div id="articlesGrid"></div>
   </div>
 
-  <!-- AI Chatbot Assistant Widget -->
+  <!-- Floating Smart AI Chatbot Widget -->
   <button class="ai-widget-btn" onclick="toggleAIChat()">🤖</button>
   
   <div id="aiChatBox" class="ai-chat-box">
     <div class="chat-header">
-      <span>LitAI Assistant</span>
+      <span>🤖 LitAI Assistant</span>
       <span style="cursor:pointer;" onclick="toggleAIChat()">✖</span>
     </div>
     <div class="chat-body" id="chatBody">
-      <div class="chat-msg bot">Hello! I am LitAI. Ask me about poems, stories, or recommendations from this gallery!</div>
+      <div class="chat-msg bot">Hello! I am LitAI. Ask me about poems, stories, or recommendations!</div>
     </div>
     <div class="chat-footer">
-      <input type="text" id="chatInput" class="form-control" placeholder="Ask AI..." onkeypress="handleChatKey(event)">
-      <button onclick="sendChatMessage()" class="nav-btn">Send</button>
+      <input type="text" id="chatInput" class="form-control" placeholder="Ask LitAI..." onkeypress="handleChatKey(event)">
+      <button onclick="sendChatMessage()" class="btn-primary">Send</button>
     </div>
   </div>
 
   <!-- Firebase Scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
