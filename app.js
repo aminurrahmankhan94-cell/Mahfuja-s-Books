@@ -18,6 +18,8 @@ db.collection("articles").orderBy("createdAt", "desc").get().then((snapshot) => 
     allArticles.push({ id: doc.id, ...doc.data() });
   });
   renderArticles(allArticles);
+}).catch((err) => {
+  document.getElementById('articlesList').innerHTML = `<p style="text-align:center; color:red;">লেখা লোড করতে সমস্যা হয়েছে: ${err.message}</p>`;
 });
 
 function renderArticles(articles) {
@@ -25,19 +27,29 @@ function renderArticles(articles) {
   list.innerHTML = '';
 
   if (articles.length === 0) {
-    list.innerHTML = '<p style="text-align:center;">কোনো লেখা পাওয়া যায়নি।</p>';
+    list.innerHTML = '<p style="text-align:center; color:#64748b; margin-top:20px;">কোনো লেখা পাওয়া যায়নি।</p>';
     return;
   }
 
   articles.forEach(art => {
     list.innerHTML += `
-      <div class="card">
-        <h2>${art.title}</h2>
-        <span class="tag">বিষয়: ${art.subject}</span>
-        <p style="white-space: pre-line; margin-top:15px;">${art.content}</p>
+      <div class="article-card">
+        <h2 class="article-title">${escapeHtml(art.title)}</h2>
+        <span class="tag">📌 বিষয়: ${escapeHtml(art.subject)}</span>
+        <div class="article-content">${escapeHtml(art.content)}</div>
       </div>
     `;
   });
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 document.getElementById('searchInput').addEventListener('input', (e) => {
