@@ -3,21 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>নতুন লেখা যোগ করুন</title>
+  <title>অ্যাডমিন প্যানেল - আমার সাহিত্য সম্ভার</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <header class="navbar">
+    <div class="logo">📚 আমার সাহিত্য সম্ভার</div>
+    <div class="nav-links">
+      <a href="index.html">📖 পাঠক কর্নারে ফিরুন</a>
+    </div>
+  </header>
+
   <div class="container">
-    <h1>নতুন লেখা প্রকাশ করুন</h1>
-    <input type="text" id="title" placeholder="লেখার শিরোনাম/নাম">
-    <input type="text" id="subject" placeholder="বিষয় বা ক্যাটাগরি (যেমন: কবিতা, গল্প, উপন্যাস)">
-    <textarea id="content" rows="10" placeholder="এখানে আপনার বিস্তারিত লেখাটি লিখুন..."></textarea>
-    <button onclick="saveWriting()">ডাটাবেজে সেভ করুন</button>
+    <!-- আইডি ও পাসওয়ার্ড লগইন ফর্ম -->
+    <div id="loginSection" class="card login-card">
+      <h2>🔑 অ্যাডমিন লগইন</h2>
+      <p class="subtitle">লেখা আপলোড করতে আপনার ইউজার আইডি ও পাসওয়ার্ড দিন</p>
+      
+      <div class="input-group">
+        <label for="adminId">ইউজার আইডি (User ID):</label>
+        <input type="text" id="adminId" placeholder="ইউজার আইডি লিখুন">
+      </div>
+
+      <div class="input-group">
+        <label for="adminPass">পাসওয়ার্ড (Password):</label>
+        <input type="password" id="adminPass" placeholder="পাসওয়ার্ড লিখুন">
+      </div>
+
+      <p id="loginError" style="display:none; color:red; margin-bottom:12px; font-weight:bold;"></p>
+      <button onclick="handleLogin()" class="btn btn-primary">লগইন করুন</button>
+    </div>
+
+    <!-- লেখা আপলোড ফর্ম (লগইন সফল হলে আসবে) -->
+    <div id="uploadSection" class="card" style="display: none;">
+      <div class="admin-header">
+        <h2>✍️ নতুন লেখা প্রকাশ করুন</h2>
+        <button onclick="handleLogout()" class="btn btn-danger">লগআউট</button>
+      </div>
+
+      <div class="input-group">
+        <label>লেখার শিরোনাম / নাম:</label>
+        <input type="text" id="title" placeholder="যেমন: মেঘের খেলা">
+      </div>
+
+      <div class="input-group">
+        <label>বিষয় / ক্যাটাগরি:</label>
+        <input type="text" id="subject" placeholder="যেমন: কবিতা, গল্প, উপন্যাস">
+      </div>
+
+      <div class="input-group">
+        <label>বিস্তারিত লেখা:</label>
+        <textarea id="content" rows="12" placeholder="এখানে আপনার মূল লেখাটি লিখুন..."></textarea>
+      </div>
+
+      <button onclick="saveWriting()" id="submitBtn" class="btn btn-success">📤 ডাটাবেজে সেভ করুন</button>
+    </div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBzvxeq6feVCSdcDVywh7mWikxbD3RryuU",
@@ -31,15 +76,57 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // অ্যাডমিন আইডি এবং পাসওয়ার্ড (ইচ্ছা হলে পরিবর্তন করতে পারেন)
+    const CORRECT_ID = "admin";
+    const CORRECT_PASS = "12345";
+
+    window.onload = function() {
+      if(sessionStorage.getItem("isAdminLoggedIn") === "true") {
+        showUploadForm();
+      }
+    };
+
+    function handleLogin() {
+      const idInput = document.getElementById('adminId').value.trim();
+      const passInput = document.getElementById('adminPass').value.trim();
+      const errorMsg = document.getElementById('loginError');
+
+      if(idInput === CORRECT_ID && passInput === CORRECT_PASS) {
+        sessionStorage.setItem("isAdminLoggedIn", "true");
+        errorMsg.style.display = "none";
+        showUploadForm();
+      } else {
+        errorMsg.innerText = "❌ ভুল ইউজার আইডি অথবা পাসওয়ার্ড!";
+        errorMsg.style.display = "block";
+      }
+    }
+
+    function showUploadForm() {
+      document.getElementById('loginSection').style.display = "none";
+      document.getElementById('uploadSection').style.display = "block";
+    }
+
+    function handleLogout() {
+      sessionStorage.removeItem("isAdminLoggedIn");
+      document.getElementById('uploadSection').style.display = "none";
+      document.getElementById('loginSection').style.display = "block";
+      document.getElementById('adminId').value = '';
+      document.getElementById('adminPass').value = '';
+    }
+
     function saveWriting() {
-      const title = document.getElementById('title').value;
-      const subject = document.getElementById('subject').value;
-      const content = document.getElementById('content').value;
+      const title = document.getElementById('title').value.trim();
+      const subject = document.getElementById('subject').value.trim();
+      const content = document.getElementById('content').value.trim();
+      const submitBtn = document.getElementById('submitBtn');
 
       if(!title || !subject || !content) {
-        alert("সবগুলো ঘর পূরণ করুন!");
+        alert("দয়া করে সবগুলো ঘর পূরণ করুন!");
         return;
       }
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = "সেভ হচ্ছে...";
 
       db.collection("articles").add({
         title: title,
@@ -47,11 +134,17 @@
         content: content,
         createdAt: new Date()
       }).then(() => {
-        alert("লেখা সফলভাবে সেভ হয়েছে!");
+        alert("🎉 আপনার লেখাটি সফলভাবে প্রকাশিত হয়েছে!");
         document.getElementById('title').value = '';
         document.getElementById('subject').value = '';
         document.getElementById('content').value = '';
-      }).catch((err) => alert("ভুল হয়েছে: " + err.message));
+        submitBtn.disabled = false;
+        submitBtn.innerText = "📤 ডাটাবেজে সেভ করুন";
+      }).catch((err) => {
+        alert("ভুল হয়েছে: " + err.message);
+        submitBtn.disabled = false;
+        submitBtn.innerText = "📤 ডাটাবেজে সেভ করুন";
+      });
     }
   </script>
 </body>
