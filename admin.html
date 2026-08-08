@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>নতুন লেখা যোগ করুন</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>নতুন লেখা প্রকাশ করুন</h1>
+    <input type="text" id="title" placeholder="লেখার শিরোনাম/নাম">
+    <input type="text" id="subject" placeholder="বিষয় বা ক্যাটাগরি (যেমন: কবিতা, গল্প, উপন্যাস)">
+    <textarea id="content" rows="10" placeholder="এখানে আপনার বিস্তারিত লেখাটি লিখুন..."></textarea>
+    <button onclick="saveWriting()">ডাটাবেজে সেভ করুন</button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzvxeq6feVCSdcDVywh7mWikxbD3RryuU",
+      authDomain: "my-writer-gallery-2cd87.firebaseapp.com",
+      projectId: "my-writer-gallery-2cd87",
+      storageBucket: "my-writer-gallery-2cd87.firebasestorage.app",
+      messagingSenderId: "233413550719",
+      appId: "1:233413550719:web:fe5e2eae246ee601a3d54a"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function saveWriting() {
+      const title = document.getElementById('title').value;
+      const subject = document.getElementById('subject').value;
+      const content = document.getElementById('content').value;
+
+      if(!title || !subject || !content) {
+        alert("সবগুলো ঘর পূরণ করুন!");
+        return;
+      }
+
+      db.collection("articles").add({
+        title: title,
+        subject: subject,
+        content: content,
+        createdAt: new Date()
+      }).then(() => {
+        alert("লেখা সফলভাবে সেভ হয়েছে!");
+        document.getElementById('title').value = '';
+        document.getElementById('subject').value = '';
+        document.getElementById('content').value = '';
+      }).catch((err) => alert("ভুল হয়েছে: " + err.message));
+    }
+  </script>
+</body>
+</html>
