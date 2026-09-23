@@ -25,9 +25,15 @@ body { background: var(--bg-main); color: var(--text-main); padding-bottom: 60px
 .btn-danger { background: transparent; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
 .btn-danger:hover { background: #ff4d4d; color: #ffffff; }
 
-.container { max-width: 900px; margin: 50px auto; padding: 0 20px; }
+.container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
 .hero-title { text-align: center; font-size: 40px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
 .hero-subtitle { text-align: center; color: var(--text-muted); margin-bottom: 35px; font-size: 15px; }
+
+/* Author Bio Card */
+.author-bio-card { display: flex; align-items: center; gap: 24px; background: #080808; border: 1px solid #333; margin-bottom: 40px; }
+.author-bio-card img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; }
+.author-bio-info h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.author-bio-info p { color: #aaa; font-size: 14px; line-height: 1.5; }
 
 .search-input { width: 100%; padding: 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: white; margin-bottom: 25px; outline: none; font-size: 14px; }
 .search-input:focus { border-color: #ffffff; }
@@ -43,11 +49,17 @@ body { background: var(--bg-main); color: var(--text-main); padding-bottom: 60px
 .book .page:nth-child(3) { animation-delay: 0.7s; background: #444444; }
 @keyframes flip { 0% { transform: rotateY(0deg); } 50%, 100% { transform: rotateY(-180deg); } }
 
-.article-card { background: var(--bg-card); border-radius: 8px; padding: 32px; margin-bottom: 24px; border: 1px solid var(--border-color); }
+/* Article Card & Post Image */
+.article-card { background: var(--bg-card); border-radius: 8px; padding: 32px; margin-bottom: 24px; border: 1px solid var(--border-color); position: relative; }
+.pinned-card { border-color: #ffffff; }
+.pinned-tag { position: absolute; top: 12px; right: 12px; background: #ffffff; color: #000; font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 2px; letter-spacing: 1px; }
+
+.post-image { width: 100%; max-height: 400px; object-fit: cover; border-radius: 6px; margin: 15px 0 20px 0; border: 1px solid var(--border-color); }
+
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
 .article-title { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; }
 .category-badge { background: #ffffff; color: #000000; padding: 4px 10px; border-radius: 3px; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
-.author-name { color: var(--text-muted); font-size: 14px; margin-bottom: 22px; font-style: italic; display: inline-block; }
+.author-name { color: var(--text-muted); font-size: 14px; margin-bottom: 15px; font-style: italic; display: inline-block; }
 .article-body { line-height: 1.8; color: #cccccc; white-space: pre-line; margin-bottom: 25px; font-size: 15px; }
 
 .card-actions { display: flex; gap: 12px; border-top: 1px solid var(--border-color); padding-top: 20px; }
@@ -66,7 +78,7 @@ body { background: var(--bg-main); color: var(--text-main); padding-bottom: 60px
 .admin-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
 .admin-table th, .admin-table td { padding: 16px 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; }
 
-/* Stylish AI Widget Button */
+/* AI Widget Button */
 .ai-widget-btn { position: fixed; bottom: 30px; right: 30px; background: #ffffff; color: #000000; padding: 14px 22px; border-radius: 30px; font-weight: 800; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; border: none; z-index: 1000; box-shadow: 0 4px 20px rgba(255,255,255,0.15); transition: 0.2s; }
 .ai-widget-btn:hover { background: #dddddd; transform: translateY(-2px); }
 
