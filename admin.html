@@ -41,7 +41,15 @@
       <div class="article-card">
         <h2 style="margin-bottom:20px; letter-spacing: 1px;">EDIT AUTHOR / POET PROFILE</h2>
         <div class="form-group"><label>Author Name</label><input type="text" id="authorNameInput" class="form-control" placeholder="Mahfuja"></div>
-        <div class="form-group"><label>Author Photo URL</label><input type="text" id="authorImgInput" class="form-control" placeholder="https://image-link.com/photo.jpg"></div>
+        
+        <!-- Author Direct Image Upload -->
+        <div class="form-group">
+          <label>Author Photo (Select from Gallery)</label>
+          <input type="file" id="authorImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'authorImgPreview', 'authorImgData')">
+          <input type="hidden" id="authorImgData">
+          <img id="authorImgPreview" src="" style="max-width:80px; max-height:80px; display:none; margin-top:10px; border-radius:50%; border:2px solid #fff;">
+        </div>
+
         <div class="form-group"><label>Bio / Details</label><textarea id="authorBioInput" class="form-control" rows="3" placeholder="Write about yourself..."></textarea></div>
         <button onclick="saveAuthorProfile()" class="btn-primary" style="width: 100%;">SAVE PROFILE DETAILS</button>
       </div>
@@ -62,7 +70,15 @@
             <option value="Drama">Drama</option>
           </select>
         </div>
-        <div class="form-group"><label>Image URL (Optional)</label><input type="text" id="imageUrl" class="form-control" placeholder="https://image-link.com/photo.jpg"></div>
+
+        <!-- Post Direct Image Upload -->
+        <div class="form-group">
+          <label>Post Image (Select from Gallery)</label>
+          <input type="file" id="postImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'postImgPreview', 'postImgData')">
+          <input type="hidden" id="postImgData">
+          <img id="postImgPreview" src="" style="max-height:150px; display:none; margin-top:10px; border-radius:6px; border:1px solid #333;">
+        </div>
+
         <div class="form-group"><label>Content</label><textarea id="content" class="form-control" rows="8"></textarea></div>
         <div style="display:flex; gap:10px;">
           <button id="savePostBtn" onclick="saveArticle()" class="btn-primary" style="flex:1;">PUBLISH WORK</button>
@@ -135,13 +151,33 @@
       } else alert("Invalid ID or Password.");
     }
 
+    // Convert Image File to Base64 String
+    function convertImageToBase64(fileInput, previewId, hiddenInputId) {
+      const file = fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById(hiddenInputId).value = e.target.result;
+          const previewImg = document.getElementById(previewId);
+          previewImg.src = e.target.result;
+          previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
     function loadAuthorProfile() {
       db.collection("settings").doc("authorProfile").get().then(doc => {
         if(doc.exists) {
           const d = doc.data();
           document.getElementById('authorNameInput').value = d.name || '';
-          document.getElementById('authorImgInput').value = d.image || '';
           document.getElementById('authorBioInput').value = d.bio || '';
+          if(d.image) {
+            document.getElementById('authorImgData').value = d.image;
+            const img = document.getElementById('authorImgPreview');
+            img.src = d.image;
+            img.style.display = 'block';
+          }
         }
       });
     }
@@ -149,7 +185,7 @@
     function saveAuthorProfile() {
       db.collection("settings").doc("authorProfile").set({
         name: document.getElementById('authorNameInput').value,
-        image: document.getElementById('authorImgInput').value,
+        image: document.getElementById('authorImgData').value,
         bio: document.getElementById('authorBioInput').value
       }).then(() => alert("Author Profile Updated successfully!"));
     }
@@ -159,7 +195,7 @@
       const title = document.getElementById('title').value;
       const author = document.getElementById('author').value || "Mahfuja";
       const subject = document.getElementById('subject').value;
-      const imageUrl = document.getElementById('imageUrl').value;
+      const imageUrl = document.getElementById('postImgData').value;
       const content = document.getElementById('content').value;
 
       if(!title || !content) return alert("Title and Content are required.");
@@ -189,8 +225,16 @@
       document.getElementById('title').value = title;
       document.getElementById('author').value = author;
       document.getElementById('subject').value = subject;
-      document.getElementById('imageUrl').value = imageUrl || '';
+      document.getElementById('postImgData').value = imageUrl || '';
       document.getElementById('content').value = content;
+
+      const previewImg = document.getElementById('postImgPreview');
+      if(imageUrl) {
+        previewImg.src = imageUrl;
+        previewImg.style.display = 'block';
+      } else {
+        previewImg.style.display = 'none';
+      }
 
       document.getElementById('formHeading').innerText = "EDIT POST";
       document.getElementById('savePostBtn').innerText = "UPDATE POST";
@@ -202,7 +246,9 @@
       document.getElementById('editArticleId').value = '';
       document.getElementById('title').value = '';
       document.getElementById('author').value = '';
-      document.getElementById('imageUrl').value = '';
+      document.getElementById('postImgData').value = '';
+      document.getElementById('postImgFile').value = '';
+      document.getElementById('postImgPreview').style.display = 'none';
       document.getElementById('content').value = '';
       document.getElementById('formHeading').innerText = "PUBLISH NEW WORK";
       document.getElementById('savePostBtn').innerText = "PUBLISH WORK";
