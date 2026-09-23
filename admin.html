@@ -9,15 +9,13 @@
 <body>
 
   <nav class="navbar">
-    <div class="brand-logo">⚙️ Super Admin Control Panel</div>
+    <div class="brand-logo">⚙️ Admin Control Panel</div>
     <a href="index.html" class="btn-outline">📖 Reader Portal</a>
   </nav>
 
   <div class="container">
-    
-    <!-- Login Screen -->
     <div id="loginSection" class="article-card" style="max-width:400px; margin: 50px auto;">
-      <h2 style="margin-bottom:15px; text-align: center;">Admin Authentication</h2>
+      <h2 style="margin-bottom:15px; text-align: center;">Admin Login</h2>
       <div class="form-group">
         <label>User ID</label>
         <input type="text" id="adminId" class="form-control" placeholder="Enter ID">
@@ -26,86 +24,48 @@
         <label>Password</label>
         <input type="password" id="adminPass" class="form-control" placeholder="Enter Password">
       </div>
-      <button onclick="handleLogin()" class="btn-primary" style="width: 100%; margin-top: 10px;">Login to Dashboard</button>
+      <button onclick="handleLogin()" class="btn-primary" style="width: 100%; margin-top: 10px;">Login</button>
     </div>
 
-    <!-- Admin Panel (Logged In) -->
     <div id="adminPanel" style="display: none;">
-      
-      <!-- Stats Overview -->
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-number" id="totalPosts">0</div>
-          <div style="color:var(--text-muted);">Total Posts</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number" id="totalLikes">0</div>
-          <div style="color:var(--text-muted);">Total Likes</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number" id="totalComments">0</div>
-          <div style="color:var(--text-muted);">Total Comments</div>
-        </div>
+        <div class="stat-card"><div class="stat-number" id="totalPosts">0</div><div>Total Posts</div></div>
+        <div class="stat-card"><div class="stat-number" id="totalLikes">0</div><div>Total Likes</div></div>
+        <div class="stat-card"><div class="stat-number" id="totalComments">0</div><div>Total Comments</div></div>
       </div>
 
-      <!-- Publish Form -->
       <div class="article-card">
-        <h2 style="margin-bottom:20px;">✍️ Publish New Literary Work</h2>
-        
+        <h2 style="margin-bottom:20px;">✍️ Publish New Work</h2>
+        <div class="form-group"><label>Title</label><input type="text" id="title" class="form-control"></div>
+        <div class="form-group"><label>Author</label><input type="text" id="author" class="form-control"></div>
         <div class="form-group">
-          <label>Title</label>
-          <input type="text" id="title" class="form-control" placeholder="Enter post title">
-        </div>
-
-        <div class="form-group">
-          <label>Author / Poet Name</label>
-          <input type="text" id="author" class="form-control" placeholder="Enter author or poet name">
-        </div>
-
-        <div class="form-group">
-          <label>Catalog / Category</label>
+          <label>Category</label>
           <select id="subject" class="form-control">
-            <option value="Story">Story (গল্প)</option>
-            <option value="Poem">Poem (কবিতা)</option>
-            <option value="Novel">Novel (উপন্যাস)</option>
-            <option value="Essay">Essay (প্রবন্ধ)</option>
-            <option value="Drama">Drama (নাটক)</option>
+            <option value="Story">Story</option>
+            <option value="Poem">Poem</option>
+            <option value="Novel">Novel</option>
+            <option value="Essay">Essay</option>
+            <option value="Drama">Drama</option>
           </select>
         </div>
-
-        <div class="form-group">
-          <label>Full Content</label>
-          <textarea id="content" class="form-control" rows="8" placeholder="Write full article here..."></textarea>
-        </div>
-
-        <button onclick="publishArticle()" id="pubBtn" class="btn-primary" style="width: 100%;">Publish Work</button>
+        <div class="form-group"><label>Content</label><textarea id="content" class="form-control" rows="8"></textarea></div>
+        <button onclick="publishArticle()" class="btn-primary" style="width: 100%;">Publish</button>
       </div>
 
-      <!-- Manage Posts, Comments & Likes Table -->
       <div class="article-card">
-        <h2 style="margin-bottom: 20px;">🛠️ Manage Posts & Moderate Comments</h2>
+        <h2 style="margin-bottom: 20px;">🛠️ Manage Posts</h2>
         <div style="overflow-x: auto;">
           <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Catalog</th>
-                <th>Likes</th>
-                <th>Comments</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Title</th><th>Category</th><th>Likes</th><th>Comments</th><th>Action</th></tr></thead>
             <tbody id="adminTableBody"></tbody>
           </table>
         </div>
       </div>
-
     </div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBzvxeq6feVCSdcDVywh7mWikxbD3RryuU",
@@ -115,113 +75,56 @@
       messagingSenderId: "233413550719",
       appId: "1:233413550719:web:fe5e2eae246ee601a3d54a"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const AUTH_ID = "admin";
-    const AUTH_PASS = "12345";
-
     function handleLogin() {
-      if(document.getElementById('adminId').value === AUTH_ID && document.getElementById('adminPass').value === AUTH_PASS) {
+      if(document.getElementById('adminId').value === 'admin' && document.getElementById('adminPass').value === '12345') {
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadAdminData();
-      } else {
-        alert("Invalid Credentials!");
-      }
+      } else alert("Wrong ID or Password!");
     }
 
     function publishArticle() {
-      const title = document.getElementById('title').value.trim();
-      const author = document.getElementById('author').value.trim();
+      const title = document.getElementById('title').value;
+      const author = document.getElementById('author').value || "Anonymous";
       const subject = document.getElementById('subject').value;
-      const content = document.getElementById('content').value.trim();
+      const content = document.getElementById('content').value;
 
-      if(!title || !content) return alert("Title and Content are required!");
+      if(!title || !content) return alert("Title and Content required!");
 
-      db.collection("articles").add({
-        title, author: author || "Anonymous Author", subject, content,
-        likes: 0, comments: [], createdAt: new Date()
-      }).then(() => {
-        alert("🎉 Article published successfully!");
-        document.getElementById('title').value = '';
-        document.getElementById('author').value = '';
-        document.getElementById('content').value = '';
-      });
+      db.collection("articles").add({ title, author, subject, content, likes: 0, comments: [], createdAt: new Date() })
+        .then(() => {
+          alert("Published Successfully!");
+          document.getElementById('title').value = ''; document.getElementById('author').value = ''; document.getElementById('content').value = '';
+        });
     }
 
     function loadAdminData() {
       db.collection("articles").onSnapshot(snapshot => {
         const tbody = document.getElementById('adminTableBody');
-        tbody.innerHTML = '';
-        let tLikes = 0, tComments = 0, count = 0;
+        tbody.innerHTML = ''; let tLikes = 0, tComments = 0, count = 0;
 
         snapshot.forEach(doc => {
-          count++;
-          const data = doc.data();
-          const likes = data.likes || 0;
-          const comments = data.comments || [];
-          tLikes += likes;
-          tComments += comments.length;
+          count++; const data = doc.data(); const likes = data.likes || 0; const comments = data.comments || [];
+          tLikes += likes; tComments += comments.length;
 
           tbody.innerHTML += `
             <tr>
-              <td><strong>${data.title}</strong><br><small style="color:var(--text-muted);">By ${data.author || 'Anon'}</small></td>
+              <td><strong>${data.title}</strong><br><small>By ${data.author}</small></td>
               <td>${data.subject}</td>
-              <td>
-                ${likes} ❤️ 
-                <button class="btn-danger" style="padding:2px 6px; font-size:10px;" onclick="resetLikes('${doc.id}')">Reset</button>
-              </td>
-              <td>
-                ${comments.length} 💬
-                <details>
-                  <summary style="cursor:pointer; color:var(--text-main); font-size:12px; font-weight:bold;">View & Delete</summary>
-                  <div style="margin-top:5px; background:var(--bg-main); padding:8px; border-radius:6px; border:1px solid var(--border-color);">
-                    ${comments.length === 0 ? '<small>No comments</small>' : ''}
-                    ${comments.map((c, idx) => `
-                      <div style="font-size:11px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
-                        <span><strong>${c.name}:</strong>${c.text}</span>
-                        <button class="btn-danger" style="padding:2px 6px; font-size:10px;" onclick="deleteComment('${doc.id}',${idx})">❌</button>
-                      </div>
-                    `).join('')}
-                  </div>
-                </details>
-              </td>
-              <td>
-                <button class="btn-danger" onclick="deleteArticle('${doc.id}')">Delete Post</button>
-              </td>
-            </tr>
-          `;
+              <td>${likes}</td>
+              <td>${comments.length}</td>
+              <td><button class="btn-danger" onclick="deleteArticle('${doc.id}')">Delete</button></td>
+            </tr>`;
         });
-
         document.getElementById('totalPosts').innerText = count;
         document.getElementById('totalLikes').innerText = tLikes;
         document.getElementById('totalComments').innerText = tComments;
       });
     }
-
-    function deleteArticle(id) {
-      if(confirm("Are you sure you want to delete this post entirely?")) {
-        db.collection("articles").doc(id).delete();
-      }
-    }
-
-    function resetLikes(id) {
-      if(confirm("Reset likes to 0 for this post?")) {
-        db.collection("articles").doc(id).update({ likes: 0 });
-      }
-    }
-
-    function deleteComment(postId, commentIndex) {
-      if(confirm("Delete this specific comment?")) {
-        db.collection("articles").doc(postId).get().then(doc => {
-          let comments = doc.data().comments || [];
-          comments.splice(commentIndex, 1);
-          db.collection("articles").doc(postId).update({ comments: comments });
-        });
-      }
-    }
+    function deleteArticle(id) { if(confirm("Delete this post?")) db.collection("articles").doc(id).delete(); }
   </script>
 </body>
 </html>
