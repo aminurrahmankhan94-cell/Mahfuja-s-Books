@@ -16,65 +16,53 @@ let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 
-// ====== Google Authentication & Save User Data ======
+// ====== Google Login ======
 auth.onAuthStateChanged((user) => {
   currentUser = user;
   const loginBtn = document.getElementById('loginBtn');
   const userBadge = document.getElementById('userBadge');
 
   if (user) {
-    loginBtn.style.display = 'none';
-    userBadge.style.display = 'flex';
-    document.getElementById('userName').innerText = user.displayName.split(' ')[0];
-    document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/30';
+    if(loginBtn) loginBtn.style.display = 'none';
+    if(userBadge) userBadge.style.display = 'flex';
+    if(document.getElementById('userName')) document.getElementById('userName').innerText = user.displayName.split(' ')[0];
+    if(document.getElementById('userAvatar')) document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/30';
 
-    // Save User to Firestore
     db.collection("users").doc(user.uid).set({
       name: user.displayName,
       email: user.email,
       photo: user.photoURL,
       lastLogin: new Date().toISOString()
     }, { merge: true });
-
   } else {
-    loginBtn.style.display = 'block';
-    userBadge.style.display = 'none';
+    if(loginBtn) loginBtn.style.display = 'block';
+    if(userBadge) userBadge.style.display = 'none';
   }
 });
 
 function googleSignIn() {
   auth.signInWithPopup(googleProvider).catch((error) => {
-    alert("Sign-in Failed: " + error.message);
+    alert("Login Error: Please add aminurrahman94-cell.github.io to Firebase Authorized Domains!");
   });
 }
 
-function googleSignOut() {
-  auth.signOut();
-}
+function googleSignOut() { auth.signOut(); }
 
-// ====== Fetch and Render Articles (With Infinite Loading Fix) ======
+// ====== Fetch Data & Show Posts ======
 db.collection("articles").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
   allArticles = [];
-  snapshot.forEach((doc) => {
-    allArticles.push({ id: doc.id, ...doc.data() });
-  });
+  snapshot.forEach((doc) => { allArticles.push({ id: doc.id, ...doc.data() }); });
   
-  // Hide loader
   const loader = document.getElementById('bookLoader');
   if(loader) loader.style.display = 'none';
-  
   renderArticles();
 }, (error) => {
-  console.error("Error fetching articles: ", error);
-  const loader = document.getElementById('bookLoader');
-  if(loader) loader.style.display = 'none';
-  document.getElementById('articlesGrid').innerHTML = `<p style="text-align:center; color:#ff4d4d; margin-top:20px;">Database Connection Error! Make sure your Firebase Rules are set to allow read/write.</p>`;
+  console.error("Database Error:", error);
 });
 
 function renderArticles() {
   const container = document.getElementById('articlesGrid');
-  if(!container) return; // Prevent error on admin page
-  
+  if(!container) return;
   const searchInput = document.getElementById('searchInput');
   const searchText = searchInput ? searchInput.value.toLowerCase() : '';
   
@@ -89,7 +77,7 @@ function renderArticles() {
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = '<p style="text-align:center; color:var(--text-muted); margin-top:40px; font-size:18px;">No writings found here.</p>';
+    container.innerHTML = '<p style="text-align:center; color:#888; margin-top:40px;">No writings found here.</p>';
     return;
   }
 
@@ -103,29 +91,21 @@ function renderArticles() {
           <h2 class="article-title">${escapeHtml(art.title)}</h2>
           <span class="category-badge">${escapeHtml(art.subject || 'General')}</span>
         </div>
-        <div class="author-name">By ${escapeHtml(art.author || 'Anonymous Author')}</div>
+        <div class="author-name">By ${escapeHtml(art.author || 'Anonymous')}</div>
         <div class="article-body">${escapeHtml(art.content)}</div>
         
         <div class="card-actions">
-          <button class="action-btn" onclick="likePost('${art.id}', ${likes})">
-            🤍 <span>${likes} Likes</span>
-          </button>
-          <button class="action-btn" onclick="toggleComments('${art.id}')">
-            💬 <span>${comments.length} Comments</span>
-          </button>
+          <button class="action-btn" onclick="likePost('${art.id}', ${likes})">🤍 <span>${likes} Likes</span></button>
+          <button class="action-btn" onclick="toggleComments('${art.id}')">💬 <span>${comments.length} Comments</span></button>
         </div>
 
-        <div id="comments-${art.id}" class="comments-container">
-          <div class="comment-input-box">
-            <input type="text" id="input-text-${art.id}" placeholder="${currentUser ? 'Add a public comment...' : 'Sign in to comment'}">
+        <div id="comments-${art.id}" class="comments-container" style="display:none; margin-top:15px; background:#000; padding:15px; border-radius:8px;">
+          <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="input-text-${art.id}" placeholder="Write a comment..." style="flex:1; padding:10px; border-radius:4px; border:1px solid #333; background:#111; color:#fff;">
             <button class="btn-primary" onclick="addComment('${art.id}')">Post</button>
           </div>
-          <div class="comment-list">
-            ${comments.map(c => `
-              <div class="comment-item">
-                <span><strong class="comment-user">${escapeHtml(c.name)}:</strong>${escapeHtml(c.text)}</span>
-              </div>
-            `).join('')}
+          <div>
+            ${comments.map(c => `<div style="margin-bottom:8px; font-size:14px; border-bottom:1px solid #333; padding-bottom:5px; color:#ddd;"><strong style="color:#fff;">${escapeHtml(c.name)}:</strong>${escapeHtml(c.text)}</div>`).join('')}
           </div>
         </div>
       </div>
@@ -136,7 +116,7 @@ function renderArticles() {
 function filterCategory(cat) {
   currentCategory = cat;
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  if(event) event.target.classList.add('active');
+  if(event && event.target) event.target.classList.add('active');
   renderArticles();
 }
 
@@ -145,10 +125,7 @@ if(document.getElementById('searchInput')){
 }
 
 function likePost(id, currentLikes) {
-  if (!currentUser) {
-    if(confirm("Please Sign-In with Google to Like! Would you like to sign in now?")) googleSignIn();
-    return;
-  }
+  if (!currentUser) return alert("Please sign in to like this post!");
   db.collection("articles").doc(id).update({ likes: currentLikes + 1 });
 }
 
@@ -158,89 +135,70 @@ function toggleComments(id) {
 }
 
 function addComment(id) {
-  if (!currentUser) {
-    if(confirm("Please Sign-In to Comment! Would you like to sign in now?")) googleSignIn();
-    return;
-  }
+  if (!currentUser) return alert("Please sign in to comment!");
   const textInput = document.getElementById(`input-text-${id}`);
-  if (!textInput.value.trim()) return alert("Please enter a comment!");
-
-  const newComment = {
-    name: currentUser.displayName || "Reader",
-    uid: currentUser.uid,
-    text: textInput.value.trim(),
-    createdAt: new Date().toISOString()
-  };
+  if (!textInput.value.trim()) return;
 
   db.collection("articles").doc(id).update({
-    comments: firebase.firestore.FieldValue.arrayUnion(newComment)
-  }).then(() => { textInput.value = ''; });
+    comments: firebase.firestore.FieldValue.arrayUnion({
+      name: currentUser.displayName,
+      uid: currentUser.uid,
+      text: textInput.value.trim(),
+      createdAt: new Date().toISOString()
+    })
+  }).then(() => textInput.value = '');
 }
 
-function escapeHtml(text) {
-  if (!text) return '';
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+function escapeHtml(t) { return t ? t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
 
 // ========================================================
-// 🤖 REAL SMART AI CHATBOT (Answers ANY Question)
+// 🤖 OFFLINE AI (No API Key Required)
 // ========================================================
-
-// আপনার দেওয়া API Key টি এখানে বসানো হয়েছে
-const GEMINI_API_KEY = "AQ.Ab8RN6JyU2TVc_I3y01DmKrMs-S2AwZ2squ0udDZFDiYFsjrSw"; 
-
 function toggleAIChat() {
   const box = document.getElementById('aiChatBox');
   box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
 }
 
-function handleChatKey(e) {
-  if(e.key === 'Enter') sendChatMessage();
-}
+function handleChatKey(e) { if(e.key === 'Enter') sendChatMessage(); }
 
-async function sendChatMessage() {
+function sendChatMessage() {
   const input = document.getElementById('chatInput');
   const body = document.getElementById('chatBody');
   const query = input.value.trim();
-  
   if(!query) return;
 
-  // ইউজারের মেসেজ শো করানো
   body.innerHTML += `<div class="chat-msg user">${escapeHtml(query)}</div>`;
   input.value = '';
   
-  // এআই চিন্তা করার এনিমেশন
   const typingId = 'typing-' + Date.now();
   body.innerHTML += `<div id="${typingId}" class="chat-msg bot">Thinking... 🤔</div>`;
   body.scrollTop = body.scrollHeight;
 
-  try {
-    // রিয়েল এআই (Gemini) কে কল করা হচ্ছে
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ 
-            parts: [{ text: `You are LitAI, a smart and friendly AI assistant for a website named "Mahfuja's Literature". Answer this question naturally in Bengali or English based on the user's language: ${query}` }] 
-        }]
-      })
-    });
-
-    const data = await response.json();
-    
-    // এআই এর উত্তর বের করা
-    let reply = data.candidates[0].content.parts[0].text;
-    
+  setTimeout(() => {
     document.getElementById(typingId).remove();
-    
-    // টেক্সট ফরম্যাটিং (বোল্ড ও লাইন ব্রেক ঠিক করা)
-    reply = reply.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    body.innerHTML += `<div class="chat-msg bot">${reply.replace(/\n/g, "<br>")}</div>`;
+    const reply = getOfflineAIResponse(query);
+    body.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
     body.scrollTop = body.scrollHeight;
+  }, 700);
+}
 
-  } catch (error) {
-    document.getElementById(typingId).remove();
-    body.innerHTML += `<div class="chat-msg bot" style="color:#ff4d4d;">দুঃখিত! সার্ভারে সমস্যা হচ্ছে অথবা আপনার API Key তে কোনো সমস্যা আছে।</div>`;
-    console.error("AI Error:", error);
-  }
+function getOfflineAIResponse(question) {
+  let q = question.toLowerCase();
+
+  // আপনি এখানে ২০০০+ প্রশ্ন সেট করতে পারবেন (if কন্ডিশন বাড়িয়ে)
+  if(q.includes("hello") || q.includes("hi") || q.includes("হ্যালো")) return "হ্যালো! আমি LitAI। আমি সাহিত্যের বিভিন্ন প্রশ্নের উত্তর দিতে পারি।";
+  if(q.includes("name") || q.includes("নাম")) return "আমার নাম LitAI। আমি এই ওয়েবসাইটের ভার্চুয়াল অ্যাসিস্ট্যান্ট।";
+  if(q.includes("how are you") || q.includes("কেমন")) return "আমি খুব ভালো আছি। আপনি কেমন আছেন?";
+  
+  // সাহিত্য ও ওয়েবসাইট সম্পর্কিত 
+  if(q.includes("mahfuja") || q.includes("মাহফুজা")) return "মাহফুজা হলেন এই চমৎকার সাহিত্য ওয়েবসাইটের প্রতিষ্ঠাতা এবং লেখক।";
+  if(q.includes("poem") || q.includes("কবিতা")) return "আমাদের ওয়েবসাইটে অনেক কবিতা আছে। আপনি উপরের 'Poems' বাটনে ক্লিক করে পড়তে পারেন।";
+  if(q.includes("story") || q.includes("গল্প")) return "গল্প পড়তে চাইলে 'Stories' ক্যাটাগরিতে ক্লিক করুন। সেখানে অনেক চমৎকার গল্প আছে।";
+  if(q.includes("rabindranath") || q.includes("রবীন্দ্রনাথ")) return "রবীন্দ্রনাথ ঠাকুর ১৯১৩ সালে 'গীতাঞ্জলি' কাব্যগ্রন্থের জন্য সাহিত্যে নোবেল পুরস্কার পান।";
+  if(q.includes("nazrul") || q.includes("নজরুল")) return "কাজী নজরুল ইসলাম বাংলাদেশের জাতীয় কবি। তাকে 'বিদ্রোহী কবি' বলা হয়।";
+  if(q.includes("love") || q.includes("ভালোবাসা")) return "ভালোবাসা সাহিত্যের একটি অমর বিষয়। শেক্সপিয়র থেকে শুরু করে সব সাহিত্যিকের লেখায় ভালোবাসার কথা আছে।";
+  if(q.includes("history") || q.includes("ইতিহাস")) return "সাহিত্যের ইতিহাস অনেক পুরোনো। মানুষ যখন লিখতে শেখেনি, তখনও মুখে মুখে গল্প ও কবিতার প্রচলন ছিল।";
+  if(q.includes("bangladesh") || q.includes("বাংলাদেশ")) return "বাংলাদেশ ১৯৭১ সালে স্বাধীন হয়। এটি একটি সুন্দর নদীমাতৃক দেশ।";
+
+  return "দারুণ প্রশ্ন! তবে আমার ডাটাবেসে এই প্রশ্নের উত্তরটি দেওয়া নেই। আপনি গল্প, কবিতা বা সাহিত্যের অন্য কোনো বিষয়ে জিজ্ঞাসা করতে পারেন।";
 }
