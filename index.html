@@ -3,85 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mahfuja's Literature - Reader Portal</title>
+  <title>Mahfuja's Literature Portal</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
   <!-- Navigation Bar -->
   <nav class="navbar">
-    <div class="brand-logo">MAHFUJA'S LITERATURE</div>
-    
-    <div class="nav-actions">
-      <div id="userBadge" class="user-profile-badge" style="display: none;">
-        <img id="userAvatar" src="" alt="User">
+    <div class="brand-logo">MAHFUJA'S GALLERY</div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button id="loginBtn" class="btn-primary" onclick="googleSignIn()">Sign In with Google</button>
+      <div id="userBadge" class="user-badge" style="display: none;">
+        <img id="userAvatar" src="" alt="User Avatar">
         <span id="userName">Reader</span>
-        <button onclick="googleSignOut()" class="btn-danger" style="padding: 4px 10px; margin-left: 5px;">Logout</button>
+        <button onclick="googleSignOut()" class="btn-logout">Logout</button>
       </div>
-
-      <button id="loginBtn" onclick="googleSignIn()" class="btn-outline">
-        Reader Sign-In
-      </button>
-
-      <a href="admin.html" class="btn-primary">Portal Admin</a>
+      <a href="admin.html" class="btn-outline">Admin Panel</a>
     </div>
   </nav>
 
   <div class="container">
-    
-    <!-- Author Bio / Details Section -->
-    <div id="authorProfileCard" class="article-card author-bio-card" style="display: none;">
-      <img id="authorBioImg" src="https://via.placeholder.com/100" alt="Author">
-      <div class="author-bio-info">
-        <span class="category-badge" style="margin-bottom: 5px;">FOUNDER & POET</span>
-        <h2 id="authorBioName">Mahfuja</h2>
-        <p id="authorBioText">Welcome to my literary world.</p>
+    <!-- Header Banner -->
+    <header class="header">
+      <h1>LITERATURE & POETRY</h1>
+      <p>A collection of thoughts, poems, stories, and novels</p>
+    </header>
+
+    <!-- Author Profile Card -->
+    <div id="authorProfileCard" class="author-profile-card" style="display: none;">
+      <img id="authorBioImg" src="" alt="Author Photo">
+      <div class="author-info">
+        <h3 id="authorBioName">Mahfuja</h3>
+        <p id="authorBioText">Founder & Poet of this literature gallery.</p>
       </div>
     </div>
 
-    <h1 class="hero-title">Explore Literary Masterpieces</h1>
-    <p class="hero-subtitle">Read freely. Sign in with Google to Like and Comment.</p>
-
-    <input type="text" id="searchInput" class="search-input" placeholder="Search by title, subject, or author name...">
-
-    <div class="catalog-tabs">
-      <button class="tab-btn active" onclick="filterCategory('All')">All Works</button>
-      <button class="tab-btn" onclick="filterCategory('Story')">Stories</button>
-      <button class="tab-btn" onclick="filterCategory('Poem')">Poems</button>
-      <button class="tab-btn" onclick="filterCategory('Novel')">Novels</button>
-      <button class="tab-btn" onclick="filterCategory('Essay')">Essays</button>
-      <button class="tab-btn" onclick="filterCategory('Drama')">Drama</button>
-    </div>
-
-    <!-- Loading Animation -->
-    <div id="bookLoader" class="book-loader-container">
-      <div class="book">
-        <div class="page"></div>
-        <div class="page"></div>
-        <div class="page"></div>
+    <!-- Search & Filter Controls -->
+    <div class="controls-section">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search title, author, or content...">
       </div>
-      <p style="margin-top: 15px; color: var(--text-muted); font-size: 14px; letter-spacing: 1px;">LOADING LITERATURE...</p>
+      <div class="category-tabs">
+        <button class="tab-btn active" onclick="filterCategory('All')">All</button>
+        <button class="tab-btn" onclick="filterCategory('Story')">Story</button>
+        <button class="tab-btn" onclick="filterCategory('Poem')">Poem</button>
+        <button class="tab-btn" onclick="filterCategory('Novel')">Novel</button>
+        <button class="tab-btn" onclick="filterCategory('Essay')">Essay</button>
+        <button class="tab-btn" onclick="filterCategory('Drama')">Drama</button>
+      </div>
     </div>
 
-    <!-- Articles Show Here -->
-    <div id="articlesGrid"></div>
+    <!-- Loader -->
+    <div id="bookLoader" class="loader-container">
+      <div class="spinner"></div>
+      <p>Loading gallery writings...</p>
+    </div>
+
+    <!-- Articles Grid -->
+    <div id="articlesGrid" class="articles-grid"></div>
   </div>
 
-  <!-- Smart Offline AI Chatbot Button -->
-  <button class="ai-widget-btn" onclick="toggleAIChat()">LitAI</button>
-  
+  <!-- AI Chat Floating Widget -->
+  <div class="ai-widget-btn" onclick="toggleAIChat()">💬 Ask Literature AI</div>
+
   <div id="aiChatBox" class="ai-chat-box">
     <div class="chat-header">
-      <span>LitAI Assistant</span>
-      <span class="close-btn" onclick="toggleAIChat()">CLOSE</span>
+      <span>Literature AI Assistant</span>
+      <span style="cursor: pointer;" onclick="toggleAIChat()">✖</span>
     </div>
-    <div class="chat-body" id="chatBody">
-      <div class="chat-msg bot">Hello! I am LitAI. Ask me any question about literature or this portal.</div>
+    <div id="chatBody" class="chat-body">
+      <div class="chat-msg bot">Hi! Ask me anything about Mahfuja's poems, stories, or literature.</div>
     </div>
     <div class="chat-footer">
-      <input type="text" id="chatInput" class="form-control" placeholder="Ask LitAI anything..." onkeypress="handleChatKey(event)">
-      <button onclick="sendChatMessage()" class="btn-primary">Send</button>
+      <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="handleChatKey(event)">
+      <button onclick="sendChatMessage()">Send</button>
     </div>
   </div>
 
@@ -89,6 +85,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  
   <script src="app.js"></script>
 </body>
 </html>
