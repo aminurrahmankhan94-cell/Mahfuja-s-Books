@@ -13,7 +13,8 @@
   <nav class="navbar">
     <div class="brand-logo">MAHFUJA'S GALLERY</div>
     <div style="display: flex; gap: 10px; align-items: center;">
-      <button id="loginBtn" class="btn-primary" onclick="googleSignIn()">Sign In with Google</button>
+      <button class="btn-outline" onclick="openAuthorModal()">About Author</button>
+      <button id="loginBtn" class="btn-primary" onclick="googleSignIn()">Sign In</button>
       <div id="userBadge" class="user-badge" style="display: none;">
         <img id="userAvatar" src="" alt="User Avatar">
         <span id="userName">Reader</span>
@@ -29,15 +30,6 @@
       <h1>LITERATURE & POETRY</h1>
       <p>A collection of thoughts, poems, stories, and novels</p>
     </header>
-
-    <!-- Author Profile Card -->
-    <div id="authorProfileCard" class="author-profile-card" style="display: none;">
-      <img id="authorBioImg" src="" alt="Author Photo">
-      <div class="author-info">
-        <h3 id="authorBioName">Mahfuja</h3>
-        <p id="authorBioText">Founder & Poet of this literature gallery.</p>
-      </div>
-    </div>
 
     <!-- Search & Filter Controls -->
     <div class="controls-section">
@@ -62,6 +54,19 @@
 
     <!-- Articles Grid -->
     <div id="articlesGrid" class="articles-grid"></div>
+  </div>
+
+  <!-- Author Info Modal Pop-up -->
+  <div id="authorModal" class="modal-overlay">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closeAuthorModal()">&times;</span>
+      <div class="author-modal-body">
+        <img id="modalAuthorImg" src="https://via.placeholder.com/100" alt="Author Photo">
+        <h2 id="modalAuthorName">Mahfuja</h2>
+        <span class="author-tagline">Founder & Author</span>
+        <p id="modalAuthorBio">Welcome to my personal literary archive. Here you can explore my poems, short stories, and novels.</p>
+      </div>
+    </div>
   </div>
 
   <!-- AI Chat Floating Widget -->
