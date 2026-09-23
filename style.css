@@ -16,10 +16,10 @@ body { background: var(--bg-main); color: var(--text-main); padding-bottom: 60px
 .user-profile-badge { display: flex; align-items: center; gap: 8px; background: var(--bg-card); padding: 4px 12px 4px 4px; border-radius: 20px; border: 1px solid var(--border-color); font-size: 13px; }
 .user-profile-badge img { width: 28px; height: 28px; border-radius: 50%; }
 
-.btn-primary { background: #ffffff; color: #000000; padding: 10px 20px; border-radius: 4px; font-weight: 700; font-size: 13px; letter-spacing: 1px; border: none; cursor: pointer; text-decoration: none; transition: 0.2s;}
+.btn-primary { background: #ffffff; color: #000000; padding: 10px 20px; border-radius: 4px; font-weight: 700; font-size: 13px; letter-spacing: 1px; border: none; cursor: pointer; text-decoration: none; transition: 0.2s; }
 .btn-primary:hover { background: #dddddd; }
 
-.btn-outline { background: transparent; color: #ffffff; padding: 10px 20px; border-radius: 4px; font-weight: 600; font-size: 13px; letter-spacing: 1px; border: 1px solid var(--border-color); cursor: pointer; text-decoration: none; transition: 0.2s;}
+.btn-outline { background: transparent; color: #ffffff; padding: 10px 20px; border-radius: 4px; font-weight: 600; font-size: 13px; letter-spacing: 1px; border: 1px solid var(--border-color); cursor: pointer; text-decoration: none; transition: 0.2s; }
 .btn-outline:hover { background: #ffffff; color: #000000; }
 
 .btn-danger { background: transparent; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
@@ -29,11 +29,11 @@ body { background: var(--bg-main); color: var(--text-main); padding-bottom: 60px
 .hero-title { text-align: center; font-size: 40px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
 .hero-subtitle { text-align: center; color: var(--text-muted); margin-bottom: 35px; font-size: 15px; }
 
-.search-input { width: 100%; padding: 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: white; margin-bottom: 25px; outline: none; font-size: 14px;}
+.search-input { width: 100%; padding: 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: white; margin-bottom: 25px; outline: none; font-size: 14px; }
 .search-input:focus { border-color: #ffffff; }
 
 .catalog-tabs { display: flex; gap: 10px; overflow-x: auto; margin-bottom: 35px; }
-.tab-btn { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px 22px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; letter-spacing: 0.5px; white-space: nowrap; transition: 0.2s;}
+.tab-btn { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px 22px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; letter-spacing: 0.5px; white-space: nowrap; transition: 0.2s; }
 .tab-btn.active, .tab-btn:hover { background: #ffffff; color: #000000; border-color: #ffffff; }
 
 .book-loader-container { display: flex; flex-direction: column; align-items: center; margin: 60px 0; }
@@ -51,8 +51,8 @@ body { background: var(--bg-main); color: var(--text-main); padding-bottom: 60px
 .article-body { line-height: 1.8; color: #cccccc; white-space: pre-line; margin-bottom: 25px; font-size: 15px; }
 
 .card-actions { display: flex; gap: 12px; border-top: 1px solid var(--border-color); padding-top: 20px; }
-.action-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 700; letter-spacing: 1px; transition: 0.2s;}
-.action-btn:hover { background: #ffffff; color: #000000; border-color: #ffffff; }
+.action-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 700; letter-spacing: 1px; transition: 0.2s; }
+.action-btn:hover, .action-btn.active-like { background: #ffffff; color: #000000; border-color: #ffffff; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
 .stat-card { background: var(--bg-card); padding: 24px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color); }
@@ -66,7 +66,7 @@ body { background: var(--bg-main); color: var(--text-main); padding-bottom: 60px
 .admin-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
 .admin-table th, .admin-table td { padding: 16px 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; }
 
-/* Stylish Text-based AI Widget Button */
+/* Stylish AI Widget Button */
 .ai-widget-btn { position: fixed; bottom: 30px; right: 30px; background: #ffffff; color: #000000; padding: 14px 22px; border-radius: 30px; font-weight: 800; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; border: none; z-index: 1000; box-shadow: 0 4px 20px rgba(255,255,255,0.15); transition: 0.2s; }
 .ai-widget-btn:hover { background: #dddddd; transform: translateY(-2px); }
 
