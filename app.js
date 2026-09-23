@@ -36,7 +36,6 @@ function closeAuthorModal() {
   if(modal) modal.style.display = 'none';
 }
 
-// Close Modal when clicked outside content
 window.onclick = function(e) {
   const modal = document.getElementById('authorModal');
   if (e.target === modal) modal.style.display = 'none';
