@@ -16,19 +16,31 @@ let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 
-// ====== Author Profile Loader ======
+// ====== Author Profile Loader & Modal ======
 db.collection("settings").doc("authorProfile").onSnapshot((doc) => {
   if (doc.exists) {
     const data = doc.data();
-    const card = document.getElementById('authorProfileCard');
-    if (card) {
-      document.getElementById('authorBioName').innerText = data.name || "Mahfuja";
-      document.getElementById('authorBioText').innerText = data.bio || "";
-      if(data.image) document.getElementById('authorBioImg').src = data.image;
-      card.style.display = 'flex';
-    }
+    if (document.getElementById('modalAuthorName')) document.getElementById('modalAuthorName').innerText = data.name || "Mahfuja";
+    if (document.getElementById('modalAuthorBio')) document.getElementById('modalAuthorBio').innerText = data.bio || "No biography available.";
+    if (data.image && document.getElementById('modalAuthorImg')) document.getElementById('modalAuthorImg').src = data.image;
   }
 });
+
+function openAuthorModal() {
+  const modal = document.getElementById('authorModal');
+  if(modal) modal.style.display = 'flex';
+}
+
+function closeAuthorModal() {
+  const modal = document.getElementById('authorModal');
+  if(modal) modal.style.display = 'none';
+}
+
+// Close Modal when clicked outside content
+window.onclick = function(e) {
+  const modal = document.getElementById('authorModal');
+  if (e.target === modal) modal.style.display = 'none';
+}
 
 // ====== Google Authentication ======
 auth.onAuthStateChanged(async (user) => {
