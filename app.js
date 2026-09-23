@@ -16,7 +16,7 @@ let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 
-// ====== Google Login ======
+// ====== Google Authentication ======
 auth.onAuthStateChanged((user) => {
   currentUser = user;
   const loginBtn = document.getElementById('loginBtn');
@@ -41,14 +41,19 @@ auth.onAuthStateChanged((user) => {
 });
 
 function googleSignIn() {
-  auth.signInWithPopup(googleProvider).catch((error) => {
-    alert("Login Error: Please add aminurrahman94-cell.github.io to Firebase Authorized Domains!");
+  auth.signInWithPopup(googleProvider).then((result) => {
+    console.log("Logged in user:", result.user);
+  }).catch((error) => {
+    console.error("Auth Error:", error);
+    alert("Login Error: " + error.message);
   });
 }
 
-function googleSignOut() { auth.signOut(); }
+function googleSignOut() { 
+  auth.signOut(); 
+}
 
-// ====== Fetch Data & Show Posts ======
+// ====== Fetch Data & Render Posts ======
 db.collection("articles").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
   allArticles = [];
   snapshot.forEach((doc) => { allArticles.push({ id: doc.id, ...doc.data() }); });
@@ -77,7 +82,7 @@ function renderArticles() {
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = '<p style="text-align:center; color:#888; margin-top:40px;">No writings found here.</p>';
+    container.innerHTML = '<p style="text-align:center; color:#888; margin-top:40px; letter-spacing:1px;">NO WRITINGS FOUND</p>';
     return;
   }
 
@@ -95,17 +100,17 @@ function renderArticles() {
         <div class="article-body">${escapeHtml(art.content)}</div>
         
         <div class="card-actions">
-          <button class="action-btn" onclick="likePost('${art.id}', ${likes})">🤍 <span>${likes} Likes</span></button>
-          <button class="action-btn" onclick="toggleComments('${art.id}')">💬 <span>${comments.length} Comments</span></button>
+          <button class="action-btn" onclick="likePost('${art.id}', ${likes})">LIKE (${likes})</button>
+          <button class="action-btn" onclick="toggleComments('${art.id}')">COMMENTS (${comments.length})</button>
         </div>
 
-        <div id="comments-${art.id}" class="comments-container" style="display:none; margin-top:15px; background:#000; padding:15px; border-radius:8px;">
+        <div id="comments-${art.id}" class="comments-container" style="display:none; margin-top:15px; background:#000; padding:15px; border-radius:8px; border:1px solid #222;">
           <div style="display:flex; gap:10px; margin-bottom:15px;">
             <input type="text" id="input-text-${art.id}" placeholder="Write a comment..." style="flex:1; padding:10px; border-radius:4px; border:1px solid #333; background:#111; color:#fff;">
-            <button class="btn-primary" onclick="addComment('${art.id}')">Post</button>
+            <button class="btn-primary" onclick="addComment('${art.id}')">POST</button>
           </div>
           <div>
-            ${comments.map(c => `<div style="margin-bottom:8px; font-size:14px; border-bottom:1px solid #333; padding-bottom:5px; color:#ddd;"><strong style="color:#fff;">${escapeHtml(c.name)}:</strong>${escapeHtml(c.text)}</div>`).join('')}
+            ${comments.map(c => `<div style="margin-bottom:8px; font-size:14px; border-bottom:1px solid #222; padding-bottom:5px; color:#ddd;"><strong style="color:#fff;">${escapeHtml(c.name)}:</strong>${escapeHtml(c.text)}</div>`).join('')}
           </div>
         </div>
       </div>
@@ -125,7 +130,7 @@ if(document.getElementById('searchInput')){
 }
 
 function likePost(id, currentLikes) {
-  if (!currentUser) return alert("Please sign in to like this post!");
+  if (!currentUser) return alert("Please sign in to like this post.");
   db.collection("articles").doc(id).update({ likes: currentLikes + 1 });
 }
 
@@ -135,7 +140,7 @@ function toggleComments(id) {
 }
 
 function addComment(id) {
-  if (!currentUser) return alert("Please sign in to comment!");
+  if (!currentUser) return alert("Please sign in to comment.");
   const textInput = document.getElementById(`input-text-${id}`);
   if (!textInput.value.trim()) return;
 
@@ -152,14 +157,16 @@ function addComment(id) {
 function escapeHtml(t) { return t ? t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
 
 // ========================================================
-// 🤖 OFFLINE AI (No API Key Required)
+// OFFLINE SMART AI LOGIC
 // ========================================================
 function toggleAIChat() {
   const box = document.getElementById('aiChatBox');
   box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
 }
 
-function handleChatKey(e) { if(e.key === 'Enter') sendChatMessage(); }
+function handleChatKey(e) { 
+  if(e.key === 'Enter') sendChatMessage(); 
+}
 
 function sendChatMessage() {
   const input = document.getElementById('chatInput');
@@ -171,7 +178,7 @@ function sendChatMessage() {
   input.value = '';
   
   const typingId = 'typing-' + Date.now();
-  body.innerHTML += `<div id="${typingId}" class="chat-msg bot">Thinking... 🤔</div>`;
+  body.innerHTML += `<div id="${typingId}" class="chat-msg bot">Thinking...</div>`;
   body.scrollTop = body.scrollHeight;
 
   setTimeout(() => {
@@ -179,26 +186,22 @@ function sendChatMessage() {
     const reply = getOfflineAIResponse(query);
     body.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
     body.scrollTop = body.scrollHeight;
-  }, 700);
+  }, 600);
 }
 
 function getOfflineAIResponse(question) {
   let q = question.toLowerCase();
 
-  // আপনি এখানে ২০০০+ প্রশ্ন সেট করতে পারবেন (if কন্ডিশন বাড়িয়ে)
-  if(q.includes("hello") || q.includes("hi") || q.includes("হ্যালো")) return "হ্যালো! আমি LitAI। আমি সাহিত্যের বিভিন্ন প্রশ্নের উত্তর দিতে পারি।";
-  if(q.includes("name") || q.includes("নাম")) return "আমার নাম LitAI। আমি এই ওয়েবসাইটের ভার্চুয়াল অ্যাসিস্ট্যান্ট।";
-  if(q.includes("how are you") || q.includes("কেমন")) return "আমি খুব ভালো আছি। আপনি কেমন আছেন?";
+  // কাস্টম প্রশ্ন-উত্তর লিস্ট
+  if(q.includes("hello") || q.includes("hi") || q.includes("হ্যালো")) return "Hello! I am LitAI. How can I assist you today?";
+  if(q.includes("name") || q.includes("নাম")) return "My name is LitAI, the virtual assistant for Mahfuja's Literature.";
+  if(q.includes("how are you") || q.includes("কেমন")) return "I am functioning perfectly. How are you doing?";
   
-  // সাহিত্য ও ওয়েবসাইট সম্পর্কিত 
-  if(q.includes("mahfuja") || q.includes("মাহফুজা")) return "মাহফুজা হলেন এই চমৎকার সাহিত্য ওয়েবসাইটের প্রতিষ্ঠাতা এবং লেখক।";
-  if(q.includes("poem") || q.includes("কবিতা")) return "আমাদের ওয়েবসাইটে অনেক কবিতা আছে। আপনি উপরের 'Poems' বাটনে ক্লিক করে পড়তে পারেন।";
-  if(q.includes("story") || q.includes("গল্প")) return "গল্প পড়তে চাইলে 'Stories' ক্যাটাগরিতে ক্লিক করুন। সেখানে অনেক চমৎকার গল্প আছে।";
-  if(q.includes("rabindranath") || q.includes("রবীন্দ্রনাথ")) return "রবীন্দ্রনাথ ঠাকুর ১৯১৩ সালে 'গীতাঞ্জলি' কাব্যগ্রন্থের জন্য সাহিত্যে নোবেল পুরস্কার পান।";
-  if(q.includes("nazrul") || q.includes("নজরুল")) return "কাজী নজরুল ইসলাম বাংলাদেশের জাতীয় কবি। তাকে 'বিদ্রোহী কবি' বলা হয়।";
-  if(q.includes("love") || q.includes("ভালোবাসা")) return "ভালোবাসা সাহিত্যের একটি অমর বিষয়। শেক্সপিয়র থেকে শুরু করে সব সাহিত্যিকের লেখায় ভালোবাসার কথা আছে।";
-  if(q.includes("history") || q.includes("ইতিহাস")) return "সাহিত্যের ইতিহাস অনেক পুরোনো। মানুষ যখন লিখতে শেখেনি, তখনও মুখে মুখে গল্প ও কবিতার প্রচলন ছিল।";
-  if(q.includes("bangladesh") || q.includes("বাংলাদেশ")) return "বাংলাদেশ ১৯৭১ সালে স্বাধীন হয়। এটি একটি সুন্দর নদীমাতৃক দেশ।";
+  if(q.includes("mahfuja") || q.includes("মাহফুজা")) return "Mahfuja is the founder and primary writer of this literary portal.";
+  if(q.includes("poem") || q.includes("কবিতা")) return "You can browse various poems by selecting the Poems tab in the header.";
+  if(q.includes("story") || q.includes("গল্প")) return "Check out the Stories section to read all published stories.";
+  if(q.includes("rabindranath") || q.includes("রবীন্দ্রনাথ")) return "Rabindranath Tagore was a Bengali polymath who won the Nobel Prize in Literature in 1913.";
+  if(q.includes("nazrul") || q.includes("নজরুল")) return "Kazi Nazrul Islam is the national poet of Bangladesh, widely known as the Rebel Poet.";
 
-  return "দারুণ প্রশ্ন! তবে আমার ডাটাবেসে এই প্রশ্নের উত্তরটি দেওয়া নেই। আপনি গল্প, কবিতা বা সাহিত্যের অন্য কোনো বিষয়ে জিজ্ঞাসা করতে পারেন।";
+  return "Thank you for your question. My knowledge base currently does not have a direct match for this inquiry. Feel free to ask about published stories, poems, or authors.";
 }
