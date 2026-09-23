@@ -29,18 +29,29 @@
     </div>
 
     <div id="adminPanel" style="display: none;">
-      <!-- Stats Summary -->
+      
+      <!-- Stats -->
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-number" id="totalPosts">0</div><div style="font-size:12px; letter-spacing:1px; color:var(--text-muted);">TOTAL POSTS</div></div>
         <div class="stat-card"><div class="stat-number" id="totalUsers">0</div><div style="font-size:12px; letter-spacing:1px; color:var(--text-muted);">TOTAL READERS</div></div>
         <div class="stat-card"><div class="stat-number" id="totalLikes">0</div><div style="font-size:12px; letter-spacing:1px; color:var(--text-muted);">TOTAL LIKES</div></div>
       </div>
 
-      <!-- Publish Form -->
+      <!-- Author Profile Settings -->
       <div class="article-card">
-        <h2 style="margin-bottom:20px; letter-spacing: 1px;">PUBLISH NEW WORK</h2>
+        <h2 style="margin-bottom:20px; letter-spacing: 1px;">EDIT AUTHOR / POET PROFILE</h2>
+        <div class="form-group"><label>Author Name</label><input type="text" id="authorNameInput" class="form-control" placeholder="Mahfuja"></div>
+        <div class="form-group"><label>Author Photo URL</label><input type="text" id="authorImgInput" class="form-control" placeholder="https://image-link.com/photo.jpg"></div>
+        <div class="form-group"><label>Bio / Details</label><textarea id="authorBioInput" class="form-control" rows="3" placeholder="Write about yourself..."></textarea></div>
+        <button onclick="saveAuthorProfile()" class="btn-primary" style="width: 100%;">SAVE PROFILE DETAILS</button>
+      </div>
+
+      <!-- Publish / Edit Post Form -->
+      <div class="article-card" id="postFormCard">
+        <h2 id="formHeading" style="margin-bottom:20px; letter-spacing: 1px;">PUBLISH NEW WORK</h2>
+        <input type="hidden" id="editArticleId" value="">
         <div class="form-group"><label>Title</label><input type="text" id="title" class="form-control"></div>
-        <div class="form-group"><label>Author</label><input type="text" id="author" class="form-control"></div>
+        <div class="form-group"><label>Author</label><input type="text" id="author" class="form-control" placeholder="Mahfuja"></div>
         <div class="form-group">
           <label>Category</label>
           <select id="subject" class="form-control">
@@ -51,20 +62,24 @@
             <option value="Drama">Drama</option>
           </select>
         </div>
+        <div class="form-group"><label>Image URL (Optional)</label><input type="text" id="imageUrl" class="form-control" placeholder="https://image-link.com/photo.jpg"></div>
         <div class="form-group"><label>Content</label><textarea id="content" class="form-control" rows="8"></textarea></div>
-        <button onclick="publishArticle()" class="btn-primary" style="width: 100%;">PUBLISH WORK</button>
+        <div style="display:flex; gap:10px;">
+          <button id="savePostBtn" onclick="saveArticle()" class="btn-primary" style="flex:1;">PUBLISH WORK</button>
+          <button id="cancelEditBtn" onclick="resetForm()" class="btn-outline" style="display:none;">CANCEL EDIT</button>
+        </div>
       </div>
 
-      <!-- Registered Gmail Users Management -->
+      <!-- Readers Management -->
       <div class="article-card">
-        <h2 style="margin-bottom: 20px; letter-spacing: 1px;">USER MANAGEMENT & ACCESS CONTROL</h2>
+        <h2 style="margin-bottom: 20px; letter-spacing: 1px;">REGISTERED GMAIL READERS</h2>
         <div style="overflow-x: auto;">
           <table class="admin-table">
             <thead>
               <tr>
                 <th>User Details</th>
                 <th>Gmail Email</th>
-                <th>User UID</th>
+                <th>UID</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
@@ -74,15 +89,15 @@
         </div>
       </div>
 
-      <!-- Posts & Moderation -->
+      <!-- Posts Management -->
       <div class="article-card">
         <h2 style="margin-bottom: 20px; letter-spacing: 1px;">MANAGE POSTS & MODERATION</h2>
         <div style="overflow-x: auto;">
           <table class="admin-table">
             <thead>
               <tr>
-                <th>Title & Author</th>
-                <th>Category</th>
+                <th>Title & Category</th>
+                <th>Pin</th>
                 <th>Likes</th>
                 <th>Comments</th>
                 <th>Actions</th>
@@ -114,34 +129,97 @@
       if(document.getElementById('adminId').value === 'admin' && document.getElementById('adminPass').value === '12345') {
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
+        loadAuthorProfile();
         loadAdminData();
         loadUserData();
       } else alert("Invalid ID or Password.");
     }
 
-    function publishArticle() {
+    // Load & Save Author Profile
+    function loadAuthorProfile() {
+      db.collection("settings").doc("authorProfile").get().then(doc => {
+        if(doc.exists) {
+          const d = doc.data();
+          document.getElementById('authorNameInput').value = d.name || '';
+          document.getElementById('authorImgInput').value = d.image || '';
+          document.getElementById('authorBioInput').value = d.bio || '';
+        }
+      });
+    }
+
+    function saveAuthorProfile() {
+      db.collection("settings").doc("authorProfile").set({
+        name: document.getElementById('authorNameInput').value,
+        image: document.getElementById('authorImgInput').value,
+        bio: document.getElementById('authorBioInput').value
+      }).then(() => alert("Author Profile Updated successfully!"));
+    }
+
+    // Publish / Edit Article
+    function saveArticle() {
+      const editId = document.getElementById('editArticleId').value;
       const title = document.getElementById('title').value;
-      const author = document.getElementById('author').value || "Anonymous";
+      const author = document.getElementById('author').value || "Mahfuja";
       const subject = document.getElementById('subject').value;
+      const imageUrl = document.getElementById('imageUrl').value;
       const content = document.getElementById('content').value;
 
       if(!title || !content) return alert("Title and Content are required.");
 
-      db.collection("articles").add({ title, author, subject, content, likes: [], comments: [], createdAt: new Date() })
-        .then(() => {
-          alert("Published Successfully.");
-          document.getElementById('title').value = ''; 
-          document.getElementById('author').value = ''; 
-          document.getElementById('content').value = '';
+      const postData = { title, author, subject, imageUrl, content };
+
+      if(editId) {
+        db.collection("articles").doc(editId).update(postData).then(() => {
+          alert("Post Updated Successfully!");
+          resetForm();
         });
+      } else {
+        postData.likes = [];
+        postData.comments = [];
+        postData.isPinned = false;
+        postData.createdAt = new Date().toISOString();
+
+        db.collection("articles").add(postData).then(() => {
+          alert("Published Successfully!");
+          resetForm();
+        });
+      }
     }
 
-    // Load registered Gmail users
+    function editPost(id, title, author, subject, imageUrl, content) {
+      document.getElementById('editArticleId').value = id;
+      document.getElementById('title').value = title;
+      document.getElementById('author').value = author;
+      document.getElementById('subject').value = subject;
+      document.getElementById('imageUrl').value = imageUrl || '';
+      document.getElementById('content').value = content;
+
+      document.getElementById('formHeading').innerText = "EDIT POST";
+      document.getElementById('savePostBtn').innerText = "UPDATE POST";
+      document.getElementById('cancelEditBtn').style.display = "inline-block";
+      window.scrollTo({ top: document.getElementById('postFormCard').offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      document.getElementById('editArticleId').value = '';
+      document.getElementById('title').value = '';
+      document.getElementById('author').value = '';
+      document.getElementById('imageUrl').value = '';
+      document.getElementById('content').value = '';
+      document.getElementById('formHeading').innerText = "PUBLISH NEW WORK";
+      document.getElementById('savePostBtn').innerText = "PUBLISH WORK";
+      document.getElementById('cancelEditBtn').style.display = "none";
+    }
+
+    function togglePin(id, currentPin) {
+      db.collection("articles").doc(id).update({ isPinned: !currentPin });
+    }
+
+    // Load Readers
     function loadUserData() {
       db.collection("users").onSnapshot(snapshot => {
         const tbody = document.getElementById('userTableBody');
-        tbody.innerHTML = '';
-        let uCount = 0;
+        tbody.innerHTML = ''; let uCount = 0;
 
         snapshot.forEach(doc => {
           uCount++;
@@ -156,7 +234,7 @@
               <td><span style="color: ${isBanned ? '#ff4d4d' : '#00ff66'}; font-weight:700;">${isBanned ? 'BANNED' : 'ACTIVE'}</span></td>
               <td>
                 <button class="${isBanned ? 'btn-primary' : 'btn-danger'}" onclick="toggleBanUser('${doc.id}', ${isBanned})">
-                  ${isBanned ? 'UNBAN USER' : 'BAN USER'}
+                  ${isBanned ? 'UNBAN' : 'BAN'}
                 </button>
               </td>
             </tr>`;
@@ -165,51 +243,62 @@
       });
     }
 
-    function toggleBanUser(uid, currentBannedState) {
-      const action = currentBannedState ? "Unban" : "Ban";
-      if(confirm(`Are you sure you want to ${action} this user?`)) {
-        db.collection("users").doc(uid).update({ isBanned: !currentBannedState });
-      }
+    function toggleBanUser(uid, currentBanned) {
+      db.collection("users").doc(uid).update({ isBanned: !currentBanned });
     }
 
-    // Load Posts & Comments Moderation
+    // Load Posts & Moderation
     function loadAdminData() {
-      db.collection("articles").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+      db.collection("articles").onSnapshot(snapshot => {
         const tbody = document.getElementById('adminTableBody');
         tbody.innerHTML = ''; let tLikes = 0, count = 0;
 
         snapshot.forEach(doc => {
           count++; 
           const data = doc.data(); 
-          const likes = Array.isArray(data.likes) ? data.likes.length : 0; 
+          const likes = Array.isArray(data.likes) ? data.likes : []; 
           const comments = Array.isArray(data.comments) ? data.comments : [];
-          tLikes += likes;
+          tLikes += likes.length;
 
+          // Likers list html
+          let likersHtml = likes.map(l => {
+            const name = typeof l === 'string' ? 'User UID' : (l.name || 'Reader');
+            const email = typeof l === 'string' ? l : (l.email || '');
+            const uid = typeof l === 'string' ? l : l.uid;
+            return `<div style="font-size:11px; margin-top:3px; background:#111; padding:4px 8px; border-radius:3px; display:flex; justify-content:space-between;">
+                      <span>${name} (${email})</span>
+                      <button class="btn-danger" style="padding:1px 4px; font-size:8px;" onclick="removeSpecificLike('${doc.id}', '${uid}')">Remove</button>
+                    </div>`;
+          }).join('');
+
+          // Comments list html
           let commentsHtml = comments.map(c => `
             <div style="margin-top:5px; font-size:12px; background:#111; padding:6px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
-              <span><strong>${c.name}:</strong> ${c.text}</span>
+              <span><strong>${c.name} (${c.email || ''}):</strong> ${c.text}</span>
               <button class="btn-danger" style="padding:2px 6px; font-size:9px;" onclick="deleteComment('${doc.id}', '${c.id}')">Delete</button>
             </div>
           `).join('');
 
           tbody.innerHTML += `
             <tr>
-              <td><strong>${data.title}</strong><br><small style="color:#888;">By ${data.author}</small></td>
-              <td>${data.subject}</td>
+              <td><strong>${data.title}</strong> ${data.isPinned ? '<span style="color:#ffd700; font-size:10px;">[PINNED]</span>' : ''}<br><small style="color:#888;">${data.subject} | By ${data.author}</small></td>
               <td>
-                ${likes}
-                ${likes > 0 ? `<button class="btn-danger" style="padding:2px 6px; font-size:9px; margin-left:5px;" onclick="clearLikes('${doc.id}')">Clear</button>` : ''}
+                <button class="${data.isPinned ? 'btn-primary' : 'btn-outline'}" style="padding:4px 8px; font-size:10px;" onclick="togglePin('${doc.id}', ${data.isPinned || false})">
+                  ${data.isPinned ? 'UNPIN' : 'PIN'}
+                </button>
               </td>
+              <td>${likes.length}</td>
               <td>${comments.length}</td>
               <td>
-                <button class="btn-danger" onclick="deleteArticle('${doc.id}')">Delete Post</button>
+                <button class="btn-outline" style="padding:4px 8px; font-size:10px; margin-right:4px;" onclick="editPost('${doc.id}', \`${escapeQuotes(data.title)}\`, \`${escapeQuotes(data.author)}\`, '${data.subject}', \`${data.imageUrl || ''}\`, \`${escapeQuotes(data.content)}\`)">Edit</button>
+                <button class="btn-danger" style="padding:4px 8px; font-size:10px;" onclick="deleteArticle('${doc.id}')">Delete</button>
               </td>
             </tr>
-            ${comments.length > 0 ? `
+            ${(likes.length > 0 || comments.length > 0) ? `
               <tr>
-                <td colspan="5" style="background:#080808; padding-left:20px;">
-                  <strong style="font-size:11px; letter-spacing:1px; color:#888;">COMMENTS MODERATION:</strong>
-                  ${commentsHtml}
+                <td colspan="5" style="background:#080808; padding:10px 15px;">
+                  ${likes.length > 0 ? `<div style="margin-bottom:10px;"><strong style="font-size:10px; color:#888; letter-spacing:1px;">LIKED BY:</strong>${likersHtml}</div>` : ''}
+                  ${comments.length > 0 ? `<div><strong style="font-size:10px; color:#888; letter-spacing:1px;">COMMENTS:</strong>${commentsHtml}</div>` : ''}
                 </td>
               </tr>
             ` : ''}
@@ -220,28 +309,34 @@
       });
     }
 
-    function deleteComment(articleId, commentId) {
-      if(!confirm("Delete this comment?")) return;
-      
+    function removeSpecificLike(articleId, userUid) {
+      if(!confirm("Remove like for this user?")) return;
       const ref = db.collection("articles").doc(articleId);
       ref.get().then(doc => {
         if(doc.exists) {
-          const comments = doc.data().comments || [];
-          const updated = comments.filter(c => c.id !== commentId);
-          ref.update({ comments: updated });
+          let likes = doc.data().likes || [];
+          likes = likes.filter(l => (typeof l === 'string' ? l !== userUid : l.uid !== userUid));
+          ref.update({ likes });
         }
       });
     }
 
-    function clearLikes(articleId) {
-      if(confirm("Remove all likes from this post?")) {
-        db.collection("articles").doc(articleId).update({ likes: [] });
-      }
+    function deleteComment(articleId, commentId) {
+      if(!confirm("Delete this comment?")) return;
+      const ref = db.collection("articles").doc(articleId);
+      ref.get().then(doc => {
+        if(doc.exists) {
+          const comments = (doc.data().comments || []).filter(c => c.id !== commentId);
+          ref.update({ comments });
+        }
+      });
     }
 
     function deleteArticle(id) { 
-      if(confirm("Are you sure you want to delete this post?")) db.collection("articles").doc(id).delete(); 
+      if(confirm("Delete this post permanently?")) db.collection("articles").doc(id).delete(); 
     }
+
+    function escapeQuotes(str) { return str ? str.replace(/`/g, "\\`").replace(/"/g, "&quot;") : ''; }
   </script>
 </body>
 </html>
