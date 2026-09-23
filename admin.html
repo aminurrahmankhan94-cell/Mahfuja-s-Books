@@ -29,12 +29,14 @@
     </div>
 
     <div id="adminPanel" style="display: none;">
+      <!-- Stats Summary -->
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-number" id="totalPosts">0</div><div style="font-size:12px; letter-spacing:1px; color:var(--text-muted);">TOTAL POSTS</div></div>
+        <div class="stat-card"><div class="stat-number" id="totalUsers">0</div><div style="font-size:12px; letter-spacing:1px; color:var(--text-muted);">TOTAL READERS</div></div>
         <div class="stat-card"><div class="stat-number" id="totalLikes">0</div><div style="font-size:12px; letter-spacing:1px; color:var(--text-muted);">TOTAL LIKES</div></div>
-        <div class="stat-card"><div class="stat-number" id="totalComments">0</div><div style="font-size:12px; letter-spacing:1px; color:var(--text-muted);">TOTAL COMMENTS</div></div>
       </div>
 
+      <!-- Publish Form -->
       <div class="article-card">
         <h2 style="margin-bottom:20px; letter-spacing: 1px;">PUBLISH NEW WORK</h2>
         <div class="form-group"><label>Title</label><input type="text" id="title" class="form-control"></div>
@@ -53,23 +55,44 @@
         <button onclick="publishArticle()" class="btn-primary" style="width: 100%;">PUBLISH WORK</button>
       </div>
 
+      <!-- Registered Gmail Users Management -->
       <div class="article-card">
-        <h2 style="margin-bottom: 20px; letter-spacing: 1px;">MANAGE POSTS</h2>
+        <h2 style="margin-bottom: 20px; letter-spacing: 1px;">USER MANAGEMENT & ACCESS CONTROL</h2>
         <div style="overflow-x: auto;">
           <table class="admin-table">
             <thead>
               <tr>
-                <th>Title</th>
+                <th>User Details</th>
+                <th>Gmail Email</th>
+                <th>User UID</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Posts & Moderation -->
+      <div class="article-card">
+        <h2 style="margin-bottom: 20px; letter-spacing: 1px;">MANAGE POSTS & MODERATION</h2>
+        <div style="overflow-x: auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Title & Author</th>
                 <th>Category</th>
                 <th>Likes</th>
                 <th>Comments</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="adminTableBody"></tbody>
           </table>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -92,6 +115,7 @@
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadAdminData();
+        loadUserData();
       } else alert("Invalid ID or Password.");
     }
 
@@ -103,7 +127,7 @@
 
       if(!title || !content) return alert("Title and Content are required.");
 
-      db.collection("articles").add({ title, author, subject, content, likes: 0, comments: [], createdAt: new Date() })
+      db.collection("articles").add({ title, author, subject, content, likes: [], comments: [], createdAt: new Date() })
         .then(() => {
           alert("Published Successfully.");
           document.getElementById('title').value = ''; 
@@ -112,28 +136,107 @@
         });
     }
 
-    function loadAdminData() {
-      db.collection("articles").onSnapshot(snapshot => {
-        const tbody = document.getElementById('adminTableBody');
-        tbody.innerHTML = ''; let tLikes = 0, tComments = 0, count = 0;
+    // Load registered Gmail users
+    function loadUserData() {
+      db.collection("users").onSnapshot(snapshot => {
+        const tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '';
+        let uCount = 0;
 
         snapshot.forEach(doc => {
-          count++; const data = doc.data(); const likes = data.likes || 0; const comments = data.comments || [];
-          tLikes += likes; tComments += comments.length;
+          uCount++;
+          const u = doc.data();
+          const isBanned = u.isBanned || false;
+
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${u.name || 'Reader'}</strong></td>
+              <td>${u.email || 'N/A'}</td>
+              <td><small style="color:#888;">${doc.id}</small></td>
+              <td><span style="color: ${isBanned ? '#ff4d4d' : '#00ff66'}; font-weight:700;">${isBanned ? 'BANNED' : 'ACTIVE'}</span></td>
+              <td>
+                <button class="${isBanned ? 'btn-primary' : 'btn-danger'}" onclick="toggleBanUser('${doc.id}', ${isBanned})">
+                  ${isBanned ? 'UNBAN USER' : 'BAN USER'}
+                </button>
+              </td>
+            </tr>`;
+        });
+        document.getElementById('totalUsers').innerText = uCount;
+      });
+    }
+
+    function toggleBanUser(uid, currentBannedState) {
+      const action = currentBannedState ? "Unban" : "Ban";
+      if(confirm(`Are you sure you want to ${action} this user?`)) {
+        db.collection("users").doc(uid).update({ isBanned: !currentBannedState });
+      }
+    }
+
+    // Load Posts & Comments Moderation
+    function loadAdminData() {
+      db.collection("articles").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+        const tbody = document.getElementById('adminTableBody');
+        tbody.innerHTML = ''; let tLikes = 0, count = 0;
+
+        snapshot.forEach(doc => {
+          count++; 
+          const data = doc.data(); 
+          const likes = Array.isArray(data.likes) ? data.likes.length : 0; 
+          const comments = Array.isArray(data.comments) ? data.comments : [];
+          tLikes += likes;
+
+          let commentsHtml = comments.map(c => `
+            <div style="margin-top:5px; font-size:12px; background:#111; padding:6px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+              <span><strong>${c.name}:</strong> ${c.text}</span>
+              <button class="btn-danger" style="padding:2px 6px; font-size:9px;" onclick="deleteComment('${doc.id}', '${c.id}')">Delete</button>
+            </div>
+          `).join('');
 
           tbody.innerHTML += `
             <tr>
               <td><strong>${data.title}</strong><br><small style="color:#888;">By ${data.author}</small></td>
               <td>${data.subject}</td>
-              <td>${likes}</td>
+              <td>
+                ${likes}
+                ${likes > 0 ? `<button class="btn-danger" style="padding:2px 6px; font-size:9px; margin-left:5px;" onclick="clearLikes('${doc.id}')">Clear</button>` : ''}
+              </td>
               <td>${comments.length}</td>
-              <td><button class="btn-danger" onclick="deleteArticle('${doc.id}')">Delete</button></td>
-            </tr>`;
+              <td>
+                <button class="btn-danger" onclick="deleteArticle('${doc.id}')">Delete Post</button>
+              </td>
+            </tr>
+            ${comments.length > 0 ? `
+              <tr>
+                <td colspan="5" style="background:#080808; padding-left:20px;">
+                  <strong style="font-size:11px; letter-spacing:1px; color:#888;">COMMENTS MODERATION:</strong>
+                  ${commentsHtml}
+                </td>
+              </tr>
+            ` : ''}
+          `;
         });
         document.getElementById('totalPosts').innerText = count;
         document.getElementById('totalLikes').innerText = tLikes;
-        document.getElementById('totalComments').innerText = tComments;
       });
+    }
+
+    function deleteComment(articleId, commentId) {
+      if(!confirm("Delete this comment?")) return;
+      
+      const ref = db.collection("articles").doc(articleId);
+      ref.get().then(doc => {
+        if(doc.exists) {
+          const comments = doc.data().comments || [];
+          const updated = comments.filter(c => c.id !== commentId);
+          ref.update({ comments: updated });
+        }
+      });
+    }
+
+    function clearLikes(articleId) {
+      if(confirm("Remove all likes from this post?")) {
+        db.collection("articles").doc(articleId).update({ likes: [] });
+      }
     }
 
     function deleteArticle(id) { 
