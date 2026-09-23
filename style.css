@@ -33,7 +33,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 40px;
+  padding: 15px 30px;
   background-color: #000;
   border-bottom: 1px solid var(--border-color);
   position: sticky;
@@ -42,7 +42,7 @@ body {
 }
 
 .brand-logo {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: 2px;
 }
@@ -50,16 +50,16 @@ body {
 .user-badge {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: #111;
-  padding: 5px 12px;
+  padding: 4px 10px;
   border-radius: 20px;
   border: 1px solid #333;
 }
 
 .user-badge img {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
 }
 
@@ -69,7 +69,6 @@ body {
   color: #888;
   cursor: pointer;
   font-size: 12px;
-  margin-left: 5px;
 }
 
 .btn-logout:hover { color: #fff; }
@@ -84,7 +83,6 @@ body {
   font-size: 13px;
   border-radius: 4px;
   cursor: pointer;
-  transition: opacity 0.2s;
 }
 
 .btn-primary:hover { opacity: 0.85; }
@@ -93,9 +91,9 @@ body {
   background-color: transparent;
   color: #fff;
   border: 1px solid #444;
-  padding: 8px 16px;
+  padding: 8px 14px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   border-radius: 4px;
   cursor: pointer;
   text-decoration: none;
@@ -117,44 +115,69 @@ body {
 /* Header Banner */
 .header {
   text-align: center;
-  margin: 50px 0 30px;
+  margin: 40px 0 25px;
 }
 
 .header h1 {
-  font-size: 32px;
+  font-size: 30px;
   letter-spacing: 4px;
   font-weight: 800;
 }
 
 .header p {
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13px;
   margin-top: 5px;
-  letter-spacing: 1px;
 }
 
-/* Author Profile Card */
-.author-profile-card {
-  display: flex;
+/* Modal Window for Author Info */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 200;
+  justify-content: center;
   align-items: center;
-  gap: 20px;
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  margin-bottom: 30px;
 }
 
-.author-profile-card img {
-  width: 70px;
-  height: 70px;
+.modal-content {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  width: 90%;
+  max-width: 450px;
+  padding: 30px;
+  border-radius: 12px;
+  position: relative;
+  text-align: center;
+}
+
+.close-modal {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 24px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.close-modal:hover { color: #fff; }
+
+.author-modal-body img {
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #fff;
+  border: 3px solid #fff;
+  margin-bottom: 15px;
 }
 
-.author-info h3 { font-size: 18px; margin-bottom: 4px; }
-.author-info p { color: var(--text-muted); font-size: 13px; }
+.author-modal-body h2 { font-size: 22px; margin-bottom: 4px; }
+.author-tagline { display: block; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
+.author-modal-body p { font-size: 14px; color: #ddd; white-space: pre-wrap; line-height: 1.6; }
 
 /* Controls */
 .controls-section {
@@ -328,7 +351,6 @@ body {
 }
 
 .chat-body { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-
 .chat-msg { max-width: 80%; padding: 8px 12px; border-radius: 6px; font-size: 12px; }
 .chat-msg.user { background: #fff; color: #000; align-self: flex-end; }
 .chat-msg.bot { background: #222; color: #fff; align-self: flex-start; }
