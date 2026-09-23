@@ -29,14 +29,11 @@
   </nav>
 
   <div class="container">
-    <!-- Hero Header -->
     <h1 class="hero-title">Explore Literary Masterpieces</h1>
     <p class="hero-subtitle">Read freely. Sign in with Google to Like and Comment!</p>
 
-    <!-- Search Bar -->
     <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by title, subject, or author name...">
 
-    <!-- Catalogs / Categories -->
     <div class="catalog-tabs">
       <button class="tab-btn active" onclick="filterCategory('All')">All Works</button>
       <button class="tab-btn" onclick="filterCategory('Story')">📖 Stories</button>
@@ -46,7 +43,7 @@
       <button class="tab-btn" onclick="filterCategory('Drama')">🎭 Drama</button>
     </div>
 
-    <!-- 3D Book Flip Loading Animation -->
+    <!-- Loading Animation -->
     <div id="bookLoader" class="book-loader-container">
       <div class="book">
         <div class="page"></div>
@@ -56,11 +53,11 @@
       <p style="margin-top: 15px; color: var(--text-muted); font-size: 14px;">Loading Literature...</p>
     </div>
 
-    <!-- Articles Container -->
+    <!-- Articles Show Here -->
     <div id="articlesGrid"></div>
   </div>
 
-  <!-- Floating Smart AI Chatbot Widget -->
+  <!-- Smart Offline AI Chatbot -->
   <button class="ai-widget-btn" onclick="toggleAIChat()">🤖</button>
   
   <div id="aiChatBox" class="ai-chat-box">
@@ -69,7 +66,7 @@
       <span style="cursor:pointer; font-size:18px;" onclick="toggleAIChat()">✖</span>
     </div>
     <div class="chat-body" id="chatBody">
-      <div class="chat-msg bot">Hello! I am LitAI. Ask me ANY question about literature, science, history, or anything else!</div>
+      <div class="chat-msg bot">Hello! I am LitAI. Ask me any question!</div>
     </div>
     <div class="chat-footer">
       <input type="text" id="chatInput" class="form-control" placeholder="Ask LitAI anything..." onkeypress="handleChatKey(event)">
@@ -77,7 +74,7 @@
     </div>
   </div>
 
-  <!-- Firebase Scripts -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
