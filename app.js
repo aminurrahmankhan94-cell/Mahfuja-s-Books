@@ -28,7 +28,7 @@ auth.onAuthStateChanged((user) => {
     document.getElementById('userName').innerText = user.displayName.split(' ')[0];
     document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/30';
 
-    // রিডার লগিন করলে তার ডাটা আপনার ডাটাবেসে 'users' কালেকশনে সেভ হবে
+    // Save User to Firestore
     db.collection("users").doc(user.uid).set({
       name: user.displayName,
       email: user.email,
@@ -52,14 +52,14 @@ function googleSignOut() {
   auth.signOut();
 }
 
-// ====== Fetch and Render Articles (With Error Fix) ======
+// ====== Fetch and Render Articles (With Infinite Loading Fix) ======
 db.collection("articles").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
   allArticles = [];
   snapshot.forEach((doc) => {
     allArticles.push({ id: doc.id, ...doc.data() });
   });
   
-  // লোডিং এনিমেশন বন্ধ করা
+  // Hide loader
   const loader = document.getElementById('bookLoader');
   if(loader) loader.style.display = 'none';
   
@@ -68,12 +68,15 @@ db.collection("articles").orderBy("createdAt", "desc").onSnapshot((snapshot) => 
   console.error("Error fetching articles: ", error);
   const loader = document.getElementById('bookLoader');
   if(loader) loader.style.display = 'none';
-  document.getElementById('articlesGrid').innerHTML = `<p style="text-align:center; color:#ff4d4d;">Database Error! Please check Firebase Rules.</p>`;
+  document.getElementById('articlesGrid').innerHTML = `<p style="text-align:center; color:#ff4d4d; margin-top:20px;">Database Connection Error! Make sure your Firebase Rules are set to allow read/write.</p>`;
 });
 
 function renderArticles() {
   const container = document.getElementById('articlesGrid');
-  const searchText = document.getElementById('searchInput').value.toLowerCase();
+  if(!container) return; // Prevent error on admin page
+  
+  const searchInput = document.getElementById('searchInput');
+  const searchText = searchInput ? searchInput.value.toLowerCase() : '';
   
   container.innerHTML = '';
 
@@ -133,7 +136,7 @@ function renderArticles() {
 function filterCategory(cat) {
   currentCategory = cat;
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  event.target.classList.add('active');
+  if(event) event.target.classList.add('active');
   renderArticles();
 }
 
@@ -180,8 +183,12 @@ function escapeHtml(text) {
 }
 
 // ========================================================
-// 🤖 SMART AI CHATBOT
+// 🤖 REAL SMART AI CHATBOT (Answers ANY Question)
 // ========================================================
+
+// আপনার দেওয়া API Key টি এখানে বসানো হয়েছে
+const GEMINI_API_KEY = "AQ.Ab8RN6JyU2TVc_I3y01DmKrMs-S2AwZ2squ0udDZFDiYFsjrSw"; 
+
 function toggleAIChat() {
   const box = document.getElementById('aiChatBox');
   box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
@@ -191,35 +198,49 @@ function handleChatKey(e) {
   if(e.key === 'Enter') sendChatMessage();
 }
 
-function sendChatMessage() {
+async function sendChatMessage() {
   const input = document.getElementById('chatInput');
   const body = document.getElementById('chatBody');
   const query = input.value.trim();
+  
   if(!query) return;
 
+  // ইউজারের মেসেজ শো করানো
   body.innerHTML += `<div class="chat-msg user">${escapeHtml(query)}</div>`;
   input.value = '';
   
+  // এআই চিন্তা করার এনিমেশন
   const typingId = 'typing-' + Date.now();
-  body.innerHTML += `<div id="${typingId}" class="chat-msg bot">Thinking...</div>`;
+  body.innerHTML += `<div id="${typingId}" class="chat-msg bot">Thinking... 🤔</div>`;
   body.scrollTop = body.scrollHeight;
 
-  setTimeout(() => {
-    let reply = getSimulatedSmartAnswer(query.toLowerCase());
+  try {
+    // রিয়েল এআই (Gemini) কে কল করা হচ্ছে
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ 
+            parts: [{ text: `You are LitAI, a smart and friendly AI assistant for a website named "Mahfuja's Literature". Answer this question naturally in Bengali or English based on the user's language: ${query}` }] 
+        }]
+      })
+    });
+
+    const data = await response.json();
+    
+    // এআই এর উত্তর বের করা
+    let reply = data.candidates[0].content.parts[0].text;
+    
     document.getElementById(typingId).remove();
+    
+    // টেক্সট ফরম্যাটিং (বোল্ড ও লাইন ব্রেক ঠিক করা)
+    reply = reply.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     body.innerHTML += `<div class="chat-msg bot">${reply.replace(/\n/g, "<br>")}</div>`;
     body.scrollTop = body.scrollHeight;
-  }, 1000);
-}
 
-function getSimulatedSmartAnswer(q) {
-  if (q.includes('hello') || q.includes('hi') || q.includes('হ্যালো') || q.includes('হাই')) return "হ্যালো! Mahfuja's Literature-এ আপনাকে স্বাগতম। আমি আপনাকে কীভাবে সাহায্য করতে পারি?";
-  if (q.includes('কে তুমি') || q.includes('who are you') || q.includes('name')) return "আমি LitAI, Mahfuja's Literature এর ভার্চুয়াল অ্যাসিস্ট্যান্ট। আমি সাহিত্যের বিভিন্ন বিষয়ে আপনাকে সাহায্য করতে পারি।";
-  if (q.includes('কবিতা') || q.includes('poem')) return "আমাদের ওয়েবসাইটে অনেক সুন্দর সুন্দর কবিতা আছে। আপনি উপরের 'Poems' ট্যাবে ক্লিক করে সেগুলো পড়তে পারেন।";
-  if (q.includes('গল্প') || q.includes('story')) return "গল্প পড়তে ভালোবাসেন? আমাদের 'Stories' সেকশনে ঘুরে আসুন, সেখানে অনেক চমৎকার গল্প আছে।";
-  if (q.includes('mahfuja') || q.includes('মাহফুজা')) return "মাহফুজা হলেন এই চমৎকার সাহিত্য প্ল্যাটফর্মটির প্রতিষ্ঠাতা এবং মূল কারিগর!";
-  if (q.includes('ভালোবাসা') || q.includes('love')) return "ভালোবাসা সাহিত্যের অন্যতম প্রধান বিষয়। রোমিও-জুলিয়েট থেকে শুরু করে রবীন্দ্রনাথের শেষের কবিতা—সবখানেই ভালোবাসার জয়জয়কার।";
-  if (q.includes('কষ্ট') || q.includes('sad')) return "কষ্ট থেকেই অনেক মহৎ সাহিত্যের জন্ম হয়। আপনি চাইলে আমাদের সাইটে কিছু বিরহের কবিতাও খুঁজে দেখতে পারেন।";
-  
-  return "খুব সুন্দর একটি প্রশ্ন! আমি এই ওয়েবসাইটের একজন আর্টিফিশিয়াল ইন্টেলিজেন্স। আমি আপনার ওয়েবসাইটের গল্প, কবিতা এবং সাধারণ সাহিত্যের বিষয়ে সাহায্য করার জন্য তৈরি হয়েছি।";
+  } catch (error) {
+    document.getElementById(typingId).remove();
+    body.innerHTML += `<div class="chat-msg bot" style="color:#ff4d4d;">দুঃখিত! সার্ভারে সমস্যা হচ্ছে অথবা আপনার API Key তে কোনো সমস্যা আছে।</div>`;
+    console.error("AI Error:", error);
+  }
 }
