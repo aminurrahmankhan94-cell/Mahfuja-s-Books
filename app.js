@@ -77,7 +77,6 @@ db.collection("articles").onSnapshot((snapshot) => {
   allArticles = [];
   snapshot.forEach((doc) => { allArticles.push({ id: doc.id, ...doc.data() }); });
   
-  // Sort: Pinned first, then by date
   allArticles.sort((a, b) => {
     if (b.isPinned !== a.isPinned) return (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
     return new Date(b.createdAt) - new Date(a.createdAt);
@@ -140,7 +139,15 @@ function renderArticles() {
             <button class="btn-primary" onclick="addComment('${art.id}')">POST</button>
           </div>
           <div>
-            ${comments.map(c => `<div style="margin-bottom:8px; font-size:14px; border-bottom:1px solid #222; padding-bottom:5px; color:#ddd;"><strong style="color:#fff;">${escapeHtml(c.name)}:</strong>${escapeHtml(c.text)}</div>`).join('')}
+            ${comments.map(c => `
+              <div style="margin-bottom:12px; font-size:14px; border-bottom:1px solid #222; padding-bottom:10px; color:#ddd;">
+                <strong style="color:#fff;">${escapeHtml(c.name)}:</strong> ${escapeHtml(c.text)}${(c.replies && c.replies.length > 0) ? c.replies.map(r => `
+                  <div style="margin-top:6px; margin-left:15px; font-size:13px; color:#bbb; border-left:2px solid #fff; padding-left:10px; background:#0a0a0a; padding-top:4px; padding-bottom:4px; border-radius:0 4px 4px 0;">
+                    <strong style="color:#fff;">Admin Reply:</strong> ${escapeHtml(r.text)}
+                  </div>
+                `).join('') : ''}
+              </div>
+            `).join('')}
           </div>
         </div>
       </div>
@@ -207,6 +214,7 @@ async function addComment(id) {
     name: currentUser.displayName || 'Reader',
     email: currentUser.email || 'N/A',
     text: text,
+    replies: [],
     createdAt: new Date().toISOString()
   };
 
