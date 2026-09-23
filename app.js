@@ -16,7 +16,7 @@ let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 
-// ====== Google Authentication ======
+// ====== Google Authentication & Save User Data ======
 auth.onAuthStateChanged((user) => {
   currentUser = user;
   const loginBtn = document.getElementById('loginBtn');
@@ -27,6 +27,15 @@ auth.onAuthStateChanged((user) => {
     userBadge.style.display = 'flex';
     document.getElementById('userName').innerText = user.displayName.split(' ')[0];
     document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/30';
+
+    // রিডার লগিন করলে তার ডাটা আপনার ডাটাবেসে 'users' কালেকশনে সেভ হবে
+    db.collection("users").doc(user.uid).set({
+      name: user.displayName,
+      email: user.email,
+      photo: user.photoURL,
+      lastLogin: new Date().toISOString()
+    }, { merge: true });
+
   } else {
     loginBtn.style.display = 'block';
     userBadge.style.display = 'none';
@@ -43,14 +52,23 @@ function googleSignOut() {
   auth.signOut();
 }
 
-// ====== Fetch and Render Articles ======
+// ====== Fetch and Render Articles (With Error Fix) ======
 db.collection("articles").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
   allArticles = [];
   snapshot.forEach((doc) => {
     allArticles.push({ id: doc.id, ...doc.data() });
   });
-  document.getElementById('bookLoader').style.display = 'none';
+  
+  // লোডিং এনিমেশন বন্ধ করা
+  const loader = document.getElementById('bookLoader');
+  if(loader) loader.style.display = 'none';
+  
   renderArticles();
+}, (error) => {
+  console.error("Error fetching articles: ", error);
+  const loader = document.getElementById('bookLoader');
+  if(loader) loader.style.display = 'none';
+  document.getElementById('articlesGrid').innerHTML = `<p style="text-align:center; color:#ff4d4d;">Database Error! Please check Firebase Rules.</p>`;
 });
 
 function renderArticles() {
@@ -119,9 +137,10 @@ function filterCategory(cat) {
   renderArticles();
 }
 
-document.getElementById('searchInput').addEventListener('input', renderArticles);
+if(document.getElementById('searchInput')){
+  document.getElementById('searchInput').addEventListener('input', renderArticles);
+}
 
-// ====== Likes & Comments ======
 function likePost(id, currentLikes) {
   if (!currentUser) {
     if(confirm("Please Sign-In with Google to Like! Would you like to sign in now?")) googleSignIn();
@@ -160,15 +179,9 @@ function escapeHtml(text) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-
 // ========================================================
-// 🤖 UPGRADED SMART AI CHATBOT (Answers All Questions)
+// 🤖 SMART AI CHATBOT
 // ========================================================
-
-// [OPTIONAL] Put your Google Gemini API Key here to make it truly answer EVERYTHING!
-// Get free key from: https://aistudio.google.com/app/apikey
-const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"; 
-
 function toggleAIChat() {
   const box = document.getElementById('aiChatBox');
   box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
@@ -178,64 +191,35 @@ function handleChatKey(e) {
   if(e.key === 'Enter') sendChatMessage();
 }
 
-async function sendChatMessage() {
+function sendChatMessage() {
   const input = document.getElementById('chatInput');
   const body = document.getElementById('chatBody');
   const query = input.value.trim();
   if(!query) return;
 
-  // Append user message
   body.innerHTML += `<div class="chat-msg user">${escapeHtml(query)}</div>`;
   input.value = '';
   
-  // Show typing indicator
   const typingId = 'typing-' + Date.now();
   body.innerHTML += `<div id="${typingId}" class="chat-msg bot">Thinking...</div>`;
   body.scrollTop = body.scrollHeight;
 
-  try {
-    let reply = "";
-
-    // If you haven't put an API Key, it uses an advanced simulated system.
-    if(GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
-       reply = getSimulatedSmartAnswer(query.toLowerCase());
-    } else {
-       // REAL AI API CALL (Google Gemini)
-       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-             contents: [{ parts: [{ text: "You are LitAI, an assistant for Mahfuja's Literature website. " + query }] }]
-          })
-       });
-       const data = await response.json();
-       reply = data.candidates[0].content.parts[0].text;
-    }
-
-    // Remove typing indicator and show real message
+  setTimeout(() => {
+    let reply = getSimulatedSmartAnswer(query.toLowerCase());
     document.getElementById(typingId).remove();
-    // Format bold text from AI (markdown to basic HTML)
-    reply = reply.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     body.innerHTML += `<div class="chat-msg bot">${reply.replace(/\n/g, "<br>")}</div>`;
     body.scrollTop = body.scrollHeight;
-
-  } catch (error) {
-    document.getElementById(typingId).remove();
-    body.innerHTML += `<div class="chat-msg bot">Sorry, my servers are taking a break! Try again.</div>`;
-  }
+  }, 1000);
 }
 
-// Fallback logic if API key is not added yet
 function getSimulatedSmartAnswer(q) {
-  if (q.includes('hello') || q.includes('hi')) return "Hello! Welcome to Mahfuja's Literature. Ask me any question!";
-  if (q.includes('who are you') || q.includes('name')) return "I am Smart LitAI, your virtual assistant for Mahfuja's Literature.";
-  if (q.includes('poem')) return `We have ${allArticles.filter(a => a.subject === 'Poem').length} poem(s) right now. Read them from the Poems tab!`;
-  if (q.includes('story')) return `We have ${allArticles.filter(a => a.subject === 'Story').length} story(ies) available.`;
-  if (q.includes('mahfuja')) return "Mahfuja is the brilliant mind behind this literature platform!";
-  if (q.includes('love')) return "Love is a popular theme in literature. Romeo and Juliet by Shakespeare is a classic example. Are you looking for romantic stories?";
-  if (q.includes('science') || q.includes('history')) return "Science and History are vast topics! Did you know the first science fiction novel is often considered to be Mary Shelley's 'Frankenstein' (1818)?";
-  if (q.includes('capital of')) return "If you're asking a general knowledge question, I'm pretty smart! For example, the capital of Bangladesh is Dhaka, and France is Paris. (Add an API key to unlock my full brain!)";
-  if (q.includes('how to write')) return "To write a good piece, start with a strong hook, build relatable characters, and write from the heart. Consistency is key!";
+  if (q.includes('hello') || q.includes('hi') || q.includes('হ্যালো') || q.includes('হাই')) return "হ্যালো! Mahfuja's Literature-এ আপনাকে স্বাগতম। আমি আপনাকে কীভাবে সাহায্য করতে পারি?";
+  if (q.includes('কে তুমি') || q.includes('who are you') || q.includes('name')) return "আমি LitAI, Mahfuja's Literature এর ভার্চুয়াল অ্যাসিস্ট্যান্ট। আমি সাহিত্যের বিভিন্ন বিষয়ে আপনাকে সাহায্য করতে পারি।";
+  if (q.includes('কবিতা') || q.includes('poem')) return "আমাদের ওয়েবসাইটে অনেক সুন্দর সুন্দর কবিতা আছে। আপনি উপরের 'Poems' ট্যাবে ক্লিক করে সেগুলো পড়তে পারেন।";
+  if (q.includes('গল্প') || q.includes('story')) return "গল্প পড়তে ভালোবাসেন? আমাদের 'Stories' সেকশনে ঘুরে আসুন, সেখানে অনেক চমৎকার গল্প আছে।";
+  if (q.includes('mahfuja') || q.includes('মাহফুজা')) return "মাহফুজা হলেন এই চমৎকার সাহিত্য প্ল্যাটফর্মটির প্রতিষ্ঠাতা এবং মূল কারিগর!";
+  if (q.includes('ভালোবাসা') || q.includes('love')) return "ভালোবাসা সাহিত্যের অন্যতম প্রধান বিষয়। রোমিও-জুলিয়েট থেকে শুরু করে রবীন্দ্রনাথের শেষের কবিতা—সবখানেই ভালোবাসার জয়জয়কার।";
+  if (q.includes('কষ্ট') || q.includes('sad')) return "কষ্ট থেকেই অনেক মহৎ সাহিত্যের জন্ম হয়। আপনি চাইলে আমাদের সাইটে কিছু বিরহের কবিতাও খুঁজে দেখতে পারেন।";
   
-  return "That's a very interesting question! While I am currently a limited local assistant, I am designed to assist you with everything related to Mahfuja's Literature. (Dev Note: Add the Gemini API Key in app.js to enable real AI answers to ANY question!)";
+  return "খুব সুন্দর একটি প্রশ্ন! আমি এই ওয়েবসাইটের একজন আর্টিফিশিয়াল ইন্টেলিজেন্স। আমি আপনার ওয়েবসাইটের গল্প, কবিতা এবং সাধারণ সাহিত্যের বিষয়ে সাহায্য করার জন্য তৈরি হয়েছি।";
 }
