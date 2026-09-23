@@ -135,7 +135,6 @@
       } else alert("Invalid ID or Password.");
     }
 
-    // Load & Save Author Profile
     function loadAuthorProfile() {
       db.collection("settings").doc("authorProfile").get().then(doc => {
         if(doc.exists) {
@@ -155,7 +154,6 @@
       }).then(() => alert("Author Profile Updated successfully!"));
     }
 
-    // Publish / Edit Article
     function saveArticle() {
       const editId = document.getElementById('editArticleId').value;
       const title = document.getElementById('title').value;
@@ -215,7 +213,6 @@
       db.collection("articles").doc(id).update({ isPinned: !currentPin });
     }
 
-    // Load Readers
     function loadUserData() {
       db.collection("users").onSnapshot(snapshot => {
         const tbody = document.getElementById('userTableBody');
@@ -247,7 +244,6 @@
       db.collection("users").doc(uid).update({ isBanned: !currentBanned });
     }
 
-    // Load Posts & Moderation
     function loadAdminData() {
       db.collection("articles").onSnapshot(snapshot => {
         const tbody = document.getElementById('adminTableBody');
@@ -260,7 +256,6 @@
           const comments = Array.isArray(data.comments) ? data.comments : [];
           tLikes += likes.length;
 
-          // Likers list html
           let likersHtml = likes.map(l => {
             const name = typeof l === 'string' ? 'User UID' : (l.name || 'Reader');
             const email = typeof l === 'string' ? l : (l.email || '');
@@ -271,11 +266,23 @@
                     </div>`;
           }).join('');
 
-          // Comments list html
           let commentsHtml = comments.map(c => `
-            <div style="margin-top:5px; font-size:12px; background:#111; padding:6px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
-              <span><strong>${c.name} (${c.email || ''}):</strong> ${c.text}</span>
-              <button class="btn-danger" style="padding:2px 6px; font-size:9px;" onclick="deleteComment('${doc.id}', '${c.id}')">Delete</button>
+            <div style="margin-top:8px; font-size:12px; background:#111; padding:8px; border-radius:4px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span><strong>${escapeQuotes(c.name)} (${escapeQuotes(c.email || '')}):</strong> ${escapeQuotes(c.text)}</span>
+                <button class="btn-danger" style="padding:2px 6px; font-size:9px;" onclick="deleteComment('${doc.id}', '${c.id}')">Delete</button>
+              </div>
+              
+              ${(c.replies && c.replies.length > 0) ? c.replies.map(r => `
+                <div style="margin-top:4px; margin-left:10px; color:#aaa; font-size:11px;">
+                  ↳ <strong>Admin Reply:</strong> ${escapeQuotes(r.text)}
+                </div>
+              `).join('') : ''}
+
+              <div style="display:flex; gap:5px; margin-top:6px;">
+                <input type="text" id="reply-input-${c.id}" placeholder="Write admin reply..." style="flex:1; padding:4px 8px; font-size:11px; background:#000; color:#fff; border:1px solid #333; border-radius:3px;">
+                <button class="btn-primary" style="padding:4px 8px; font-size:10px;" onclick="addAdminReply('${doc.id}', '${c.id}')">REPLY</button>
+              </div>
             </div>
           `).join('');
 
@@ -298,7 +305,7 @@
               <tr>
                 <td colspan="5" style="background:#080808; padding:10px 15px;">
                   ${likes.length > 0 ? `<div style="margin-bottom:10px;"><strong style="font-size:10px; color:#888; letter-spacing:1px;">LIKED BY:</strong>${likersHtml}</div>` : ''}
-                  ${comments.length > 0 ? `<div><strong style="font-size:10px; color:#888; letter-spacing:1px;">COMMENTS:</strong>${commentsHtml}</div>` : ''}
+                  ${comments.length > 0 ? `<div><strong style="font-size:10px; color:#888; letter-spacing:1px;">COMMENTS & REPLIES:</strong>${commentsHtml}</div>` : ''}
                 </td>
               </tr>
             ` : ''}
@@ -306,6 +313,32 @@
         });
         document.getElementById('totalPosts').innerText = count;
         document.getElementById('totalLikes').innerText = tLikes;
+      });
+    }
+
+    function addAdminReply(articleId, commentId) {
+      const replyInput = document.getElementById(`reply-input-${commentId}`);
+      const replyText = replyInput.value.trim();
+      if(!replyText) return alert("Write something to reply!");
+
+      const ref = db.collection("articles").doc(articleId);
+      ref.get().then(doc => {
+        if(doc.exists) {
+          let comments = doc.data().comments || [];
+          const cmtIndex = comments.findIndex(c => c.id === commentId);
+          if(cmtIndex > -1) {
+            if(!comments[cmtIndex].replies) comments[cmtIndex].replies = [];
+            comments[cmtIndex].replies.push({
+              id: 'rply_' + Date.now(),
+              text: replyText,
+              createdAt: new Date().toISOString()
+            });
+            ref.update({ comments }).then(() => {
+              replyInput.value = '';
+              alert("Reply added successfully!");
+            });
+          }
+        }
       });
     }
 
