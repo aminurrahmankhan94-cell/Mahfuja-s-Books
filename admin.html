@@ -45,7 +45,7 @@
         <!-- Author Direct Image Upload -->
         <div class="form-group">
           <label>Author Photo (Select from Gallery)</label>
-          <input type="file" id="authorImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'authorImgPreview', 'authorImgData')">
+          <input type="file" id="authorImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'authorImgPreview', 'authorImgData', 300)">
           <input type="hidden" id="authorImgData">
           <img id="authorImgPreview" src="" style="max-width:80px; max-height:80px; display:none; margin-top:10px; border-radius:50%; border:2px solid #fff;">
         </div>
@@ -73,8 +73,8 @@
 
         <!-- Post Direct Image Upload -->
         <div class="form-group">
-          <label>Post Image (Select from Gallery)</label>
-          <input type="file" id="postImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'postImgPreview', 'postImgData')">
+          <label>Post Image (Select from Gallery - Optional)</label>
+          <input type="file" id="postImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'postImgPreview', 'postImgData', 800)">
           <input type="hidden" id="postImgData">
           <img id="postImgPreview" src="" style="max-height:150px; display:none; margin-top:10px; border-radius:6px; border:1px solid #333;">
         </div>
@@ -151,16 +151,40 @@
       } else alert("Invalid ID or Password.");
     }
 
-    // Direct Image Upload (Base64 Reader)
-    function convertImageToBase64(fileInput, previewId, hiddenInputId) {
+    // Direct Image Upload & Auto Compression Logic (Prevents Firebase Document Limit Error)
+    function convertImageToBase64(fileInput, previewId, hiddenInputId, maxDim) {
       const file = fileInput.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function (e) {
-          document.getElementById(hiddenInputId).value = e.target.result;
-          const previewImg = document.getElementById(previewId);
-          previewImg.src = e.target.result;
-          previewImg.style.display = 'block';
+          const img = new Image();
+          img.src = e.target.result;
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            document.getElementById(hiddenInputId).value = compressedBase64;
+            const previewImg = document.getElementById(previewId);
+            previewImg.src = compressedBase64;
+            previewImg.style.display = 'block';
+          };
         };
         reader.readAsDataURL(file);
       }
@@ -187,16 +211,17 @@
         name: document.getElementById('authorNameInput').value,
         image: document.getElementById('authorImgData').value,
         bio: document.getElementById('authorBioInput').value
-      }).then(() => alert("Author Profile Updated successfully!"));
+      }).then(() => alert("Author Profile Updated successfully!"))
+        .catch(err => alert("Error updating profile: " + err.message));
     }
 
     function saveArticle() {
       const editId = document.getElementById('editArticleId').value;
-      const title = document.getElementById('title').value;
-      const author = document.getElementById('author').value || "Mahfuja";
+      const title = document.getElementById('title').value.trim();
+      const author = document.getElementById('author').value.trim() || "Mahfuja";
       const subject = document.getElementById('subject').value;
       const imageUrl = document.getElementById('postImgData').value;
-      const content = document.getElementById('content').value;
+      const content = document.getElementById('content').value.trim();
 
       if(!title || !content) return alert("Title and Content are required.");
 
@@ -206,7 +231,7 @@
         db.collection("articles").doc(editId).update(postData).then(() => {
           alert("Post Updated Successfully!");
           resetForm();
-        });
+        }).catch(err => alert("Failed to update: " + err.message));
       } else {
         postData.likes = [];
         postData.comments = [];
@@ -216,7 +241,7 @@
         db.collection("articles").add(postData).then(() => {
           alert("Published Successfully!");
           resetForm();
-        });
+        }).catch(err => alert("Failed to publish: " + err.message));
       }
     }
 
