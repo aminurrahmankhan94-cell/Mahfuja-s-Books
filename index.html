@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Literary Vault - Modern Reader Portal</title>
+  <title>Mahfuja's Literature - Reader Portal</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -11,26 +11,26 @@
 
   <!-- Navbar -->
   <nav class="navbar">
-    <div class="brand-logo rainbow-text">✨ Literary Vault</div>
+    <div class="brand-logo">📖 Mahfuja's Literature</div>
     
     <div class="nav-actions">
       <div id="userBadge" class="user-profile-badge" style="display: none;">
         <img id="userAvatar" src="" alt="User">
         <span id="userName">Reader</span>
-        <button onclick="googleSignOut()" class="btn-danger" style="padding: 2px 8px; margin-left: 5px;">Logout</button>
+        <button onclick="googleSignOut()" class="btn-danger" style="padding: 4px 10px; margin-left: 5px;">Logout</button>
       </div>
 
-      <button id="loginBtn" onclick="googleSignIn()" class="btn-primary btn-google">
+      <button id="loginBtn" onclick="googleSignIn()" class="btn-outline">
         🔑 Reader Sign-In
       </button>
 
-      <a href="admin.html" class="btn-primary" style="background:#7f00ff;">Portal Admin</a>
+      <a href="admin.html" class="btn-primary">Portal Admin</a>
     </div>
   </nav>
 
   <div class="container">
     <!-- Hero Header -->
-    <h1 class="hero-title rainbow-text">Explore Literary Masterpieces</h1>
+    <h1 class="hero-title">Explore Literary Masterpieces</h1>
     <p class="hero-subtitle">Read freely. Sign in with Google to Like and Comment!</p>
 
     <!-- Search Bar -->
@@ -53,7 +53,7 @@
         <div class="page"></div>
         <div class="page"></div>
       </div>
-      <p style="margin-top: 15px; color: #94a3b8; font-size: 14px;">Turning pages...</p>
+      <p style="margin-top: 15px; color: var(--text-muted); font-size: 14px;">Loading Literature...</p>
     </div>
 
     <!-- Articles Container -->
@@ -65,14 +65,14 @@
   
   <div id="aiChatBox" class="ai-chat-box">
     <div class="chat-header">
-      <span>🤖 LitAI Assistant</span>
-      <span style="cursor:pointer;" onclick="toggleAIChat()">✖</span>
+      <span>🤖 Smart LitAI</span>
+      <span style="cursor:pointer; font-size:18px;" onclick="toggleAIChat()">✖</span>
     </div>
     <div class="chat-body" id="chatBody">
-      <div class="chat-msg bot">Hello! I am LitAI. Ask me about poems, stories, or recommendations!</div>
+      <div class="chat-msg bot">Hello! I am LitAI. Ask me ANY question about literature, science, history, or anything else!</div>
     </div>
     <div class="chat-footer">
-      <input type="text" id="chatInput" class="form-control" placeholder="Ask LitAI..." onkeypress="handleChatKey(event)">
+      <input type="text" id="chatInput" class="form-control" placeholder="Ask LitAI anything..." onkeypress="handleChatKey(event)">
       <button onclick="sendChatMessage()" class="btn-primary">Send</button>
     </div>
   </div>
