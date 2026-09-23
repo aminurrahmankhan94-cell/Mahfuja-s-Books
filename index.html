@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mahfuja's Literature - Reader Portal</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Navbar -->
+  <!-- Navigation Bar -->
   <nav class="navbar">
-    <div class="brand-logo">📖 Mahfuja's Literature</div>
+    <div class="brand-logo">MAHFUJA'S LITERATURE</div>
     
     <div class="nav-actions">
       <div id="userBadge" class="user-profile-badge" style="display: none;">
@@ -21,7 +21,7 @@
       </div>
 
       <button id="loginBtn" onclick="googleSignIn()" class="btn-outline">
-        🔑 Reader Sign-In
+        Reader Sign-In
       </button>
 
       <a href="admin.html" class="btn-primary">Portal Admin</a>
@@ -30,17 +30,17 @@
 
   <div class="container">
     <h1 class="hero-title">Explore Literary Masterpieces</h1>
-    <p class="hero-subtitle">Read freely. Sign in with Google to Like and Comment!</p>
+    <p class="hero-subtitle">Read freely. Sign in with Google to Like and Comment.</p>
 
-    <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by title, subject, or author name...">
+    <input type="text" id="searchInput" class="search-input" placeholder="Search by title, subject, or author name...">
 
     <div class="catalog-tabs">
       <button class="tab-btn active" onclick="filterCategory('All')">All Works</button>
-      <button class="tab-btn" onclick="filterCategory('Story')">📖 Stories</button>
-      <button class="tab-btn" onclick="filterCategory('Poem')">✍️ Poems</button>
-      <button class="tab-btn" onclick="filterCategory('Novel')">📚 Novels</button>
-      <button class="tab-btn" onclick="filterCategory('Essay')">📝 Essays</button>
-      <button class="tab-btn" onclick="filterCategory('Drama')">🎭 Drama</button>
+      <button class="tab-btn" onclick="filterCategory('Story')">Stories</button>
+      <button class="tab-btn" onclick="filterCategory('Poem')">Poems</button>
+      <button class="tab-btn" onclick="filterCategory('Novel')">Novels</button>
+      <button class="tab-btn" onclick="filterCategory('Essay')">Essays</button>
+      <button class="tab-btn" onclick="filterCategory('Drama')">Drama</button>
     </div>
 
     <!-- Loading Animation -->
@@ -50,23 +50,23 @@
         <div class="page"></div>
         <div class="page"></div>
       </div>
-      <p style="margin-top: 15px; color: var(--text-muted); font-size: 14px;">Loading Literature...</p>
+      <p style="margin-top: 15px; color: var(--text-muted); font-size: 14px; letter-spacing: 1px;">LOADING LITERATURE...</p>
     </div>
 
     <!-- Articles Show Here -->
     <div id="articlesGrid"></div>
   </div>
 
-  <!-- Smart Offline AI Chatbot -->
-  <button class="ai-widget-btn" onclick="toggleAIChat()">🤖</button>
+  <!-- Smart Offline AI Chatbot Button -->
+  <button class="ai-widget-btn" onclick="toggleAIChat()">LitAI</button>
   
   <div id="aiChatBox" class="ai-chat-box">
     <div class="chat-header">
-      <span>🤖 Smart LitAI</span>
-      <span style="cursor:pointer; font-size:18px;" onclick="toggleAIChat()">✖</span>
+      <span>LitAI Assistant</span>
+      <span class="close-btn" onclick="toggleAIChat()">CLOSE</span>
     </div>
     <div class="chat-body" id="chatBody">
-      <div class="chat-msg bot">Hello! I am LitAI. Ask me any question!</div>
+      <div class="chat-msg bot">Hello! I am LitAI. Ask me any question about literature or this portal.</div>
     </div>
     <div class="chat-footer">
       <input type="text" id="chatInput" class="form-control" placeholder="Ask LitAI anything..." onkeypress="handleChatKey(event)">
@@ -74,7 +74,7 @@
     </div>
   </div>
 
-  <!-- Firebase -->
+  <!-- Firebase Scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
