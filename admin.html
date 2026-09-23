@@ -44,13 +44,13 @@
         
         <!-- Author Direct Image Upload -->
         <div class="form-group">
-          <label>Author Photo (Select from Gallery)</label>
+          <label>Author Photo (Select any image from gallery)</label>
           <input type="file" id="authorImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'authorImgPreview', 'authorImgData', 300)">
           <input type="hidden" id="authorImgData">
           <img id="authorImgPreview" src="" style="max-width:80px; max-height:80px; display:none; margin-top:10px; border-radius:50%; border:2px solid #fff;">
         </div>
 
-        <div class="form-group"><label>Bio / Details</label><textarea id="authorBioInput" class="form-control" rows="3" placeholder="Write about yourself..."></textarea></div>
+        <div class="form-group"><label>Bio / Details</label><textarea id="authorBioInput" class="form-control" rows="5" placeholder="Write about yourself..."></textarea></div>
         <button onclick="saveAuthorProfile()" class="btn-primary" style="width: 100%;">SAVE PROFILE DETAILS</button>
       </div>
 
@@ -71,10 +71,10 @@
           </select>
         </div>
 
-        <!-- Post Direct Image Upload -->
+        <!-- Post Image Upload with Ultra-Compression -->
         <div class="form-group">
-          <label>Post Image (Select from Gallery - Optional)</label>
-          <input type="file" id="postImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'postImgPreview', 'postImgData', 800)">
+          <label>Post Image (Select any size image - Optional)</label>
+          <input type="file" id="postImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'postImgPreview', 'postImgData', 600)">
           <input type="hidden" id="postImgData">
           <img id="postImgPreview" src="" style="max-height:150px; display:none; margin-top:10px; border-radius:6px; border:1px solid #333;">
         </div>
@@ -151,7 +151,7 @@
       } else alert("Invalid ID or Password.");
     }
 
-    // Direct Image Upload & Auto Compression Logic (Prevents Firebase Document Limit Error)
+    // High-Ratio Image Compression (Converts any MB image into ~30KB JPEG Base64)
     function convertImageToBase64(fileInput, previewId, hiddenInputId, maxDim) {
       const file = fileInput.files[0];
       if (file) {
@@ -179,7 +179,7 @@
             const ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0, width, height);
 
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
             document.getElementById(hiddenInputId).value = compressedBase64;
             const previewImg = document.getElementById(previewId);
             previewImg.src = compressedBase64;
@@ -207,15 +207,27 @@
     }
 
     function saveAuthorProfile() {
+      const btn = event.target;
+      btn.innerText = "SAVING...";
+      btn.disabled = true;
+
       db.collection("settings").doc("authorProfile").set({
         name: document.getElementById('authorNameInput').value,
         image: document.getElementById('authorImgData').value,
         bio: document.getElementById('authorBioInput').value
-      }).then(() => alert("Author Profile Updated successfully!"))
-        .catch(err => alert("Error updating profile: " + err.message));
+      }).then(() => {
+        alert("Author Profile Updated successfully!");
+        btn.innerText = "SAVE PROFILE DETAILS";
+        btn.disabled = false;
+      }).catch(err => {
+        alert("Error: " + err.message);
+        btn.innerText = "SAVE PROFILE DETAILS";
+        btn.disabled = false;
+      });
     }
 
     function saveArticle() {
+      const saveBtn = document.getElementById('savePostBtn');
       const editId = document.getElementById('editArticleId').value;
       const title = document.getElementById('title').value.trim();
       const author = document.getElementById('author').value.trim() || "Mahfuja";
@@ -225,13 +237,22 @@
 
       if(!title || !content) return alert("Title and Content are required.");
 
+      saveBtn.innerText = "PUBLISHING...";
+      saveBtn.disabled = true;
+
       const postData = { title, author, subject, imageUrl, content };
 
       if(editId) {
         db.collection("articles").doc(editId).update(postData).then(() => {
           alert("Post Updated Successfully!");
+          saveBtn.innerText = "PUBLISH WORK";
+          saveBtn.disabled = false;
           resetForm();
-        }).catch(err => alert("Failed to update: " + err.message));
+        }).catch(err => {
+          alert("Update Error: " + err.message);
+          saveBtn.innerText = "UPDATE POST";
+          saveBtn.disabled = false;
+        });
       } else {
         postData.likes = [];
         postData.comments = [];
@@ -240,8 +261,14 @@
 
         db.collection("articles").add(postData).then(() => {
           alert("Published Successfully!");
+          saveBtn.innerText = "PUBLISH WORK";
+          saveBtn.disabled = false;
           resetForm();
-        }).catch(err => alert("Failed to publish: " + err.message));
+        }).catch(err => {
+          alert("Publish Error: " + err.message);
+          saveBtn.innerText = "PUBLISH WORK";
+          saveBtn.disabled = false;
+        });
       }
     }
 
@@ -277,6 +304,7 @@
       document.getElementById('content').value = '';
       document.getElementById('formHeading').innerText = "PUBLISH NEW WORK";
       document.getElementById('savePostBtn').innerText = "PUBLISH WORK";
+      document.getElementById('savePostBtn').disabled = false;
       document.getElementById('cancelEditBtn').style.display = "none";
     }
 
