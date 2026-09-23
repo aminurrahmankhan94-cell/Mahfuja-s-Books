@@ -186,7 +186,7 @@ body {
   border-color: #ffffff;
 }
 
-/* 3D Book Page Flip Loading Scene (B&W Version) */
+/* 3D Book Page Flip Loading Scene */
 .book-loader-container {
   display: flex;
   flex-direction: column;
