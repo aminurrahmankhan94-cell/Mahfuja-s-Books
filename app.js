@@ -16,24 +16,36 @@ let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 
-// ====== Google Authentication ======
-auth.onAuthStateChanged((user) => {
+// ====== Google Authentication & Ban Verification ======
+auth.onAuthStateChanged(async (user) => {
   currentUser = user;
   const loginBtn = document.getElementById('loginBtn');
   const userBadge = document.getElementById('userBadge');
 
   if (user) {
-    if(loginBtn) loginBtn.style.display = 'none';
-    if(userBadge) userBadge.style.display = 'flex';
-    if(document.getElementById('userName')) document.getElementById('userName').innerText = user.displayName.split(' ')[0];
-    if(document.getElementById('userAvatar')) document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/30';
+    const userRef = db.collection("users").doc(user.uid);
+    const doc = await userRef.get();
 
-    db.collection("users").doc(user.uid).set({
-      name: user.displayName,
+    // Check if user is banned by admin
+    if (doc.exists && doc.data().isBanned) {
+      alert("Your account has been suspended by the admin.");
+      auth.signOut();
+      return;
+    }
+
+    // Save/Update user profile in Database
+    await userRef.set({
+      uid: user.uid,
+      name: user.displayName || 'Reader',
       email: user.email,
-      photo: user.photoURL,
+      photo: user.photoURL || '',
       lastLogin: new Date().toISOString()
     }, { merge: true });
+
+    if(loginBtn) loginBtn.style.display = 'none';
+    if(userBadge) userBadge.style.display = 'flex';
+    if(document.getElementById('userName')) document.getElementById('userName').innerText = (user.displayName || 'Reader').split(' ')[0];
+    if(document.getElementById('userAvatar')) document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/30';
   } else {
     if(loginBtn) loginBtn.style.display = 'block';
     if(userBadge) userBadge.style.display = 'none';
@@ -87,8 +99,12 @@ function renderArticles() {
   }
 
   filtered.forEach(art => {
-    const likes = art.likes || 0;
-    const comments = art.comments || [];
+    // Likes calculation (Stored as UID Array)
+    const likesArray = Array.isArray(art.likes) ? art.likes : [];
+    const likesCount = likesArray.length;
+    const hasLiked = currentUser && likesArray.includes(currentUser.uid);
+
+    const comments = Array.isArray(art.comments) ? art.comments : [];
 
     container.innerHTML += `
       <div class="article-card">
@@ -100,7 +116,9 @@ function renderArticles() {
         <div class="article-body">${escapeHtml(art.content)}</div>
         
         <div class="card-actions">
-          <button class="action-btn" onclick="likePost('${art.id}', ${likes})">LIKE (${likes})</button>
+          <button class="action-btn ${hasLiked ? 'active-like' : ''}" onclick="likePost('${art.id}')">
+            ${hasLiked ? 'LIKED' : 'LIKE'} (${likesCount})
+          </button>
           <button class="action-btn" onclick="toggleComments('${art.id}')">COMMENTS (${comments.length})</button>
         </div>
 
@@ -129,9 +147,33 @@ if(document.getElementById('searchInput')){
   document.getElementById('searchInput').addEventListener('input', renderArticles);
 }
 
-function likePost(id, currentLikes) {
+// ====== Toggle Like Logic ======
+async function likePost(id) {
   if (!currentUser) return alert("Please sign in to like this post.");
-  db.collection("articles").doc(id).update({ likes: currentLikes + 1 });
+
+  // Check ban status
+  const userDoc = await db.collection("users").doc(currentUser.uid).get();
+  if (userDoc.exists && userDoc.data().isBanned) {
+    return alert("Your account has been suspended.");
+  }
+
+  const articleRef = db.collection("articles").doc(id);
+  const doc = await articleRef.get();
+  if (!doc.exists) return;
+
+  const likesArray = Array.isArray(doc.data().likes) ? doc.data().likes : [];
+
+  if (likesArray.includes(currentUser.uid)) {
+    // Already Liked -> Remove Like
+    articleRef.update({
+      likes: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+    });
+  } else {
+    // Not Liked -> Add Like
+    articleRef.update({
+      likes: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+    });
+  }
 }
 
 function toggleComments(id) {
@@ -139,34 +181,41 @@ function toggleComments(id) {
   box.style.display = box.style.display === 'block' ? 'none' : 'block';
 }
 
-function addComment(id) {
+// ====== Unlimited Comment Logic ======
+async function addComment(id) {
   if (!currentUser) return alert("Please sign in to comment.");
+
+  const userDoc = await db.collection("users").doc(currentUser.uid).get();
+  if (userDoc.exists && userDoc.data().isBanned) {
+    return alert("Your account has been suspended from commenting.");
+  }
+
   const textInput = document.getElementById(`input-text-${id}`);
-  if (!textInput.value.trim()) return;
+  const text = textInput.value.trim();
+  if (!text) return;
+
+  const newComment = {
+    id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    uid: currentUser.uid,
+    name: currentUser.displayName || 'Reader',
+    text: text,
+    createdAt: new Date().toISOString()
+  };
 
   db.collection("articles").doc(id).update({
-    comments: firebase.firestore.FieldValue.arrayUnion({
-      name: currentUser.displayName,
-      uid: currentUser.uid,
-      text: textInput.value.trim(),
-      createdAt: new Date().toISOString()
-    })
+    comments: firebase.firestore.FieldValue.arrayUnion(newComment)
   }).then(() => textInput.value = '');
 }
 
 function escapeHtml(t) { return t ? t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
 
-// ========================================================
-// OFFLINE SMART AI LOGIC
-// ========================================================
+// ====== Offline Smart AI Logic ======
 function toggleAIChat() {
   const box = document.getElementById('aiChatBox');
   box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
 }
 
-function handleChatKey(e) { 
-  if(e.key === 'Enter') sendChatMessage(); 
-}
+function handleChatKey(e) { if(e.key === 'Enter') sendChatMessage(); }
 
 function sendChatMessage() {
   const input = document.getElementById('chatInput');
@@ -191,17 +240,11 @@ function sendChatMessage() {
 
 function getOfflineAIResponse(question) {
   let q = question.toLowerCase();
-
-  // কাস্টম প্রশ্ন-উত্তর লিস্ট
   if(q.includes("hello") || q.includes("hi") || q.includes("হ্যালো")) return "Hello! I am LitAI. How can I assist you today?";
   if(q.includes("name") || q.includes("নাম")) return "My name is LitAI, the virtual assistant for Mahfuja's Literature.";
   if(q.includes("how are you") || q.includes("কেমন")) return "I am functioning perfectly. How are you doing?";
-  
   if(q.includes("mahfuja") || q.includes("মাহফুজা")) return "Mahfuja is the founder and primary writer of this literary portal.";
   if(q.includes("poem") || q.includes("কবিতা")) return "You can browse various poems by selecting the Poems tab in the header.";
   if(q.includes("story") || q.includes("গল্প")) return "Check out the Stories section to read all published stories.";
-  if(q.includes("rabindranath") || q.includes("রবীন্দ্রনাথ")) return "Rabindranath Tagore was a Bengali polymath who won the Nobel Prize in Literature in 1913.";
-  if(q.includes("nazrul") || q.includes("নজরুল")) return "Kazi Nazrul Islam is the national poet of Bangladesh, widely known as the Rebel Poet.";
-
-  return "Thank you for your question. My knowledge base currently does not have a direct match for this inquiry. Feel free to ask about published stories, poems, or authors.";
+  return "Thank you for your question. Feel free to ask about published stories, poems, or authors.";
 }
