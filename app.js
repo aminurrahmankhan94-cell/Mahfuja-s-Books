@@ -16,7 +16,21 @@ let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 
-// ====== Google Authentication & Ban Verification ======
+// ====== Author Profile Loader ======
+db.collection("settings").doc("authorProfile").onSnapshot((doc) => {
+  if (doc.exists) {
+    const data = doc.data();
+    const card = document.getElementById('authorProfileCard');
+    if (card) {
+      document.getElementById('authorBioName').innerText = data.name || "Mahfuja";
+      document.getElementById('authorBioText').innerText = data.bio || "";
+      if(data.image) document.getElementById('authorBioImg').src = data.image;
+      card.style.display = 'flex';
+    }
+  }
+});
+
+// ====== Google Authentication ======
 auth.onAuthStateChanged(async (user) => {
   currentUser = user;
   const loginBtn = document.getElementById('loginBtn');
@@ -26,14 +40,12 @@ auth.onAuthStateChanged(async (user) => {
     const userRef = db.collection("users").doc(user.uid);
     const doc = await userRef.get();
 
-    // Check if user is banned by admin
     if (doc.exists && doc.data().isBanned) {
       alert("Your account has been suspended by the admin.");
       auth.signOut();
       return;
     }
 
-    // Save/Update user profile in Database
     await userRef.set({
       uid: user.uid,
       name: user.displayName || 'Reader',
@@ -53,28 +65,27 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 function googleSignIn() {
-  auth.signInWithPopup(googleProvider).then((result) => {
-    console.log("Logged in user:", result.user);
-  }).catch((error) => {
-    console.error("Auth Error:", error);
+  auth.signInWithPopup(googleProvider).catch((error) => {
     alert("Login Error: " + error.message);
   });
 }
 
-function googleSignOut() { 
-  auth.signOut(); 
-}
+function googleSignOut() { auth.signOut(); }
 
-// ====== Fetch Data & Render Posts ======
-db.collection("articles").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+// ====== Fetch Articles & Render ======
+db.collection("articles").onSnapshot((snapshot) => {
   allArticles = [];
   snapshot.forEach((doc) => { allArticles.push({ id: doc.id, ...doc.data() }); });
   
+  // Sort: Pinned first, then by date
+  allArticles.sort((a, b) => {
+    if (b.isPinned !== a.isPinned) return (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
   const loader = document.getElementById('bookLoader');
   if(loader) loader.style.display = 'none';
   renderArticles();
-}, (error) => {
-  console.error("Database Error:", error);
 });
 
 function renderArticles() {
@@ -99,25 +110,26 @@ function renderArticles() {
   }
 
   filtered.forEach(art => {
-    // Likes calculation (Stored as UID Array)
-    const likesArray = Array.isArray(art.likes) ? art.likes : [];
-    const likesCount = likesArray.length;
-    const hasLiked = currentUser && likesArray.includes(currentUser.uid);
-
+    const likesList = Array.isArray(art.likes) ? art.likes : [];
+    const hasLiked = currentUser && likesList.some(l => (typeof l === 'string' ? l === currentUser.uid : l.uid === currentUser.uid));
     const comments = Array.isArray(art.comments) ? art.comments : [];
 
     container.innerHTML += `
-      <div class="article-card">
+      <div class="article-card ${art.isPinned ? 'pinned-card' : ''}">
+        ${art.isPinned ? '<div class="pinned-tag">PINNED WORK</div>' : ''}
         <div class="card-header">
           <h2 class="article-title">${escapeHtml(art.title)}</h2>
           <span class="category-badge">${escapeHtml(art.subject || 'General')}</span>
         </div>
         <div class="author-name">By ${escapeHtml(art.author || 'Anonymous')}</div>
+        
+        ${art.imageUrl ? `<img src="${escapeHtml(art.imageUrl)}" class="post-image" alt="Post Image">` : ''}
+
         <div class="article-body">${escapeHtml(art.content)}</div>
         
         <div class="card-actions">
           <button class="action-btn ${hasLiked ? 'active-like' : ''}" onclick="likePost('${art.id}')">
-            ${hasLiked ? 'LIKED' : 'LIKE'} (${likesCount})
+            ${hasLiked ? 'LIKED' : 'LIKE'} (${likesList.length})
           </button>
           <button class="action-btn" onclick="toggleComments('${art.id}')">COMMENTS (${comments.length})</button>
         </div>
@@ -151,29 +163,27 @@ if(document.getElementById('searchInput')){
 async function likePost(id) {
   if (!currentUser) return alert("Please sign in to like this post.");
 
-  // Check ban status
   const userDoc = await db.collection("users").doc(currentUser.uid).get();
-  if (userDoc.exists && userDoc.data().isBanned) {
-    return alert("Your account has been suspended.");
-  }
+  if (userDoc.exists && userDoc.data().isBanned) return alert("Your account has been suspended.");
 
   const articleRef = db.collection("articles").doc(id);
   const doc = await articleRef.get();
   if (!doc.exists) return;
 
-  const likesArray = Array.isArray(doc.data().likes) ? doc.data().likes : [];
+  let likesList = Array.isArray(doc.data().likes) ? doc.data().likes : [];
+  const existingIndex = likesList.findIndex(l => (typeof l === 'string' ? l === currentUser.uid : l.uid === currentUser.uid));
 
-  if (likesArray.includes(currentUser.uid)) {
-    // Already Liked -> Remove Like
-    articleRef.update({
-      likes: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
-    });
+  if (existingIndex > -1) {
+    likesList.splice(existingIndex, 1);
   } else {
-    // Not Liked -> Add Like
-    articleRef.update({
-      likes: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+    likesList.push({
+      uid: currentUser.uid,
+      name: currentUser.displayName || 'Reader',
+      email: currentUser.email || 'N/A'
     });
   }
+
+  articleRef.update({ likes: likesList });
 }
 
 function toggleComments(id) {
@@ -181,14 +191,11 @@ function toggleComments(id) {
   box.style.display = box.style.display === 'block' ? 'none' : 'block';
 }
 
-// ====== Unlimited Comment Logic ======
 async function addComment(id) {
   if (!currentUser) return alert("Please sign in to comment.");
 
   const userDoc = await db.collection("users").doc(currentUser.uid).get();
-  if (userDoc.exists && userDoc.data().isBanned) {
-    return alert("Your account has been suspended from commenting.");
-  }
+  if (userDoc.exists && userDoc.data().isBanned) return alert("Your account has been suspended.");
 
   const textInput = document.getElementById(`input-text-${id}`);
   const text = textInput.value.trim();
@@ -198,6 +205,7 @@ async function addComment(id) {
     id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
     uid: currentUser.uid,
     name: currentUser.displayName || 'Reader',
+    email: currentUser.email || 'N/A',
     text: text,
     createdAt: new Date().toISOString()
   };
@@ -232,19 +240,14 @@ function sendChatMessage() {
 
   setTimeout(() => {
     document.getElementById(typingId).remove();
-    const reply = getOfflineAIResponse(query);
-    body.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
+    body.innerHTML += `<div class="chat-msg bot">${getOfflineAIResponse(query)}</div>`;
     body.scrollTop = body.scrollHeight;
   }, 600);
 }
 
-function getOfflineAIResponse(question) {
-  let q = question.toLowerCase();
-  if(q.includes("hello") || q.includes("hi") || q.includes("হ্যালো")) return "Hello! I am LitAI. How can I assist you today?";
-  if(q.includes("name") || q.includes("নাম")) return "My name is LitAI, the virtual assistant for Mahfuja's Literature.";
-  if(q.includes("how are you") || q.includes("কেমন")) return "I am functioning perfectly. How are you doing?";
-  if(q.includes("mahfuja") || q.includes("মাহফুজা")) return "Mahfuja is the founder and primary writer of this literary portal.";
-  if(q.includes("poem") || q.includes("কবিতা")) return "You can browse various poems by selecting the Poems tab in the header.";
-  if(q.includes("story") || q.includes("গল্প")) return "Check out the Stories section to read all published stories.";
-  return "Thank you for your question. Feel free to ask about published stories, poems, or authors.";
+function getOfflineAIResponse(q) {
+  q = q.toLowerCase();
+  if(q.includes("hello") || q.includes("hi")) return "Hello! How can I help you today?";
+  if(q.includes("mahfuja")) return "Mahfuja is the founder and poet of this literature portal.";
+  return "Thank you for reaching out! You can explore stories, poems, and novels in the portal.";
 }
