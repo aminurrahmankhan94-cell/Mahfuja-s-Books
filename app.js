@@ -41,6 +41,14 @@ window.onclick = function(e) {
   if (e.target === modal) modal.style.display = 'none';
 }
 
+// ====== Date Formatter Helper ======
+function formatDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 // ====== Google Authentication ======
 auth.onAuthStateChanged(async (user) => {
   currentUser = user;
@@ -123,6 +131,7 @@ function renderArticles() {
     const likesList = Array.isArray(art.likes) ? art.likes : [];
     const hasLiked = currentUser && likesList.some(l => (typeof l === 'string' ? l === currentUser.uid : l.uid === currentUser.uid));
     const comments = Array.isArray(art.comments) ? art.comments : [];
+    const formattedDate = formatDate(art.createdAt);
 
     container.innerHTML += `
       <div class="article-card ${art.isPinned ? 'pinned-card' : ''}">
@@ -131,7 +140,9 @@ function renderArticles() {
           <h2 class="article-title">${escapeHtml(art.title)}</h2>
           <span class="category-badge">${escapeHtml(art.subject || 'General')}</span>
         </div>
-        <div class="author-name">By ${escapeHtml(art.author || 'Anonymous')}</div>
+        <div class="author-name">
+          By ${escapeHtml(art.author || 'Anonymous')} ${formattedDate ? '• ' + formattedDate : ''}
+        </div>
         
         ${art.imageUrl ? `<img src="${escapeHtml(art.imageUrl)}" class="post-image" alt="Post Image">` : ''}
 
