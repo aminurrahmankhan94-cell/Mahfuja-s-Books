@@ -16,6 +16,12 @@ let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 
+// ====== Auto Remove Splash Screen ======
+setTimeout(() => {
+  const splash = document.getElementById('splashScreen');
+  if (splash) splash.remove();
+}, 3000);
+
 // ====== Author Profile Loader & Modal ======
 db.collection("settings").doc("authorProfile").onSnapshot((doc) => {
   if (doc.exists) {
@@ -278,6 +284,6 @@ function sendChatMessage() {
 function getOfflineAIResponse(q) {
   q = q.toLowerCase();
   if(q.includes("hello") || q.includes("hi")) return "Hello! How can I help you today?";
-  if(q.includes("mahfuja")) return "Mahfuja is the founder and poet of this literature portal.";
+  if(q.includes("mahfuja") || q.includes("onukto")) return "Onukto is a literature portal featuring poems, short stories, and novels by Mahfuja.";
   return "Thank you for reaching out! You can explore stories, poems, and novels in the portal.";
 }
