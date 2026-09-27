@@ -1,144 +1,223 @@
-// Firebase configuration kora ache dhore nilam...
-// const db = firebase.firestore();
-// const auth = firebase.auth();
+const firebaseConfig = {
+  apiKey: "AIzaSyBzvxeq6feVCSdcDVywh7mWikxbD3RryuU",
+  authDomain: "my-writer-gallery-2cd87.firebaseapp.com",
+  projectId: "my-writer-gallery-2cd87",
+  storageBucket: "my-writer-gallery-2cd87.firebasestorage.app",
+  messagingSenderId: "233413550719",
+  appId: "1:233413550719:web:fe5e2eae246ee601a3d54a"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+// ====== ENABLE OFFLINE PERSISTENCE (INSTANT LOAD) ======
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    console.warn('Multiple tabs open, persistence enabled in first tab only.');
+  } else if (err.code == 'unimplemented') {
+    console.warn('Browser does not support offline persistence.');
+  }
+});
 
 let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 let currentSort = 'newest';
-let selectedReportArticleId = null;
 
-// ====== Offline Persistence ======
-db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-  console.warn("Offline data warning:", err.code);
-});
-
-// ====== 4.5s Splash Screen & Background Loading ======
-// Splash screen thaka obosthatei pichone Firebase theke data load shuru hoye jabe.
+// ====== Auto Remove Splash Screen ======
+// ====== Fast Splash Screen Removal ======
 setTimeout(() => {
   const splash = document.getElementById('splashScreen');
+  if (splash) splash.remove();
+}, 3000);
   if (splash) {
     splash.style.opacity = '0';
-    setTimeout(() => {
-      splash.style.display = 'none';
-      splash.remove();
-    }, 500); // 0.5s fade transition
+    splash.style.transition = 'opacity 0.4s ease';
+    setTimeout(() => splash.remove(), 400);
   }
-}, 4500);
+}, 1200);
 
-// ====== UI Settings (Theme & Text Size) ======
-function initSettings() {
-  const savedTheme = localStorage.getItem('theme') || 'dark';
-  const savedText = localStorage.getItem('textSize') || 'normal';
-  
-  if (savedTheme === 'light') {
-    document.body.classList.add('light-mode');
-    if(document.getElementById('themeToggleBtn')) document.getElementById('themeToggleBtn').innerText = 'Switch to Dark Mode';
+// ====== Author Profile Loader & Modal ======
+db.collection("settings").doc("authorProfile").onSnapshot((doc) => {
+@@ -31,6 +44,8 @@
+    if (document.getElementById('modalAuthorBio')) document.getElementById('modalAuthorBio').innerText = data.bio || "No biography available.";
+    if (data.image && document.getElementById('modalAuthorImg')) document.getElementById('modalAuthorImg').src = data.image;
   }
-  if (savedText === 'large') {
-    document.body.classList.add('large-text');
-    if(document.getElementById('textSizeBtn')) document.getElementById('textSizeBtn').innerText = 'Switch to Normal Text';
-  }
-}
-initSettings();
+}, (error) => {
+  console.log("Author profile load notice:", error);
+});
 
-function openSettingsModal() { document.getElementById('settingsModal').style.display = 'flex'; }
-function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
-
-function toggleTheme() {
-  document.body.classList.toggle('light-mode');
-  const isLight = document.body.classList.contains('light-mode');
-  localStorage.setItem('theme', isLight ? 'light' : 'dark');
-  document.getElementById('themeToggleBtn').innerText = isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode';
-}
-
-function toggleTextSize() {
-  document.body.classList.toggle('large-text');
-  const isLarge = document.body.classList.contains('large-text');
-  localStorage.setItem('textSize', isLarge ? 'large' : 'normal');
-  document.getElementById('textSizeBtn').innerText = isLarge ? 'Switch to Normal Text' : 'Switch to Large Text';
-}
-
-// ====== Auth System ======
-auth.onAuthStateChanged(async (user) => {
-  currentUser = user;
-  const loginBtn = document.getElementById('loginBtn');
-  const userBadge = document.getElementById('userBadge');
-  const settingsBtn = document.getElementById('settingsBtn');
+function openAuthorModal() {
+@@ -64,22 +79,26 @@
 
   if (user) {
-    // Check ban status...
+    const userRef = db.collection("users").doc(user.uid);
+    const doc = await userRef.get();
+
+    if (doc.exists && doc.data().isBanned) {
+      alert("Your account has been suspended by the admin.");
+      auth.signOut();
+      return;
+    try {
+      const doc = await userRef.get();
+
+      if (doc.exists && doc.data().isBanned) {
+        alert("Your account has been suspended by the admin.");
+        auth.signOut();
+        return;
+      }
+
+      await userRef.set({
+        uid: user.uid,
+        name: user.displayName || 'Reader',
+        email: user.email,
+        photo: user.photoURL || '',
+        lastLogin: new Date().toISOString()
+      }, { merge: true });
+    } catch(e) {
+      console.log("User auth sync warning:", e);
+    }
+
+    await userRef.set({
+      uid: user.uid,
+      name: user.displayName || 'Reader',
+      email: user.email,
+      photo: user.photoURL || '',
+      lastLogin: new Date().toISOString()
+    }, { merge: true });
+
     if(loginBtn) loginBtn.style.display = 'none';
     if(userBadge) userBadge.style.display = 'flex';
-    if(settingsBtn) settingsBtn.style.display = 'block'; // Show settings when logged in
-  } else {
-    if(loginBtn) loginBtn.style.display = 'block';
-    if(userBadge) userBadge.style.display = 'none';
-    if(settingsBtn) settingsBtn.style.display = 'none';
-  }
-  renderArticles();
-});
+    if(document.getElementById('userName')) document.getElementById('userName').innerText = (user.displayName || 'Reader').split(' ')[0];
+@@ -98,233 +117,253 @@
 
-// ====== Fetch & Render Posts inside Card Boxes ======
+function googleSignOut() { auth.signOut(); }
+
+// ====== Fetch Articles & Render ======
+db.collection("articles").onSnapshot((snapshot) => {
+// ====== Safe Loader Timeout Handler ======
+let dataLoadedOnce = false;
+setTimeout(() => {
+  if (!dataLoadedOnce) {
+    const loader = document.getElementById('bookLoader');
+    if (loader && loader.style.display !== 'none') {
+      if (allArticles.length === 0) {
+        const container = document.getElementById('articlesGrid');
+        if (container) container.innerHTML = '<p style="text-align:center; color:#888; margin-top:40px;">Slow network connection. Showing cached data if available.</p>';
+      }
+      loader.style.display = 'none';
+    }
+  }
+}, 4000);
+
+// ====== Fetch Articles & Render with Cache ======
 db.collection("articles").onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
+  dataLoadedOnce = true;
   allArticles = [];
   snapshot.forEach((doc) => { allArticles.push({ id: doc.id, ...doc.data() }); });
-  renderArticles(); // Background-e load hobe
+
+  const loader = document.getElementById('bookLoader');
+  if(loader) loader.style.display = 'none';
+  renderArticles();
+}, (error) => {
+  console.error("Firestore error:", error);
+  const loader = document.getElementById('bookLoader');
+  if(loader) loader.style.display = 'none';
 });
+
+function changeSort(val) {
+  currentSort = val;
+  renderArticles();
+}
 
 function renderArticles() {
   const container = document.getElementById('articlesGrid');
-  if (!container) return;
+  if(!container) return;
+  const searchInput = document.getElementById('searchInput');
+  const searchText = searchInput ? searchInput.value.toLowerCase() : '';
+
   container.innerHTML = '';
 
-  let filtered = allArticles.filter(art => currentCategory === 'All' || art.subject === currentCategory);
-  
+  // Filter logic
+  let filtered = allArticles.filter(art => {
+    const matchesCat = currentCategory === 'All' || (art.subject && art.subject.toLowerCase() === currentCategory.toLowerCase());
+    const matchesSearch = (art.title && art.title.toLowerCase().includes(searchText)) || 
+                          (art.author && art.author.toLowerCase().includes(searchText)) ||
+                          (art.content && art.content.toLowerCase().includes(searchText));
+    return matchesCat && matchesSearch;
+  });
+
+  // Sort logic
   filtered.sort((a, b) => {
     if (b.isPinned !== a.isPinned) return (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
-    return new Date(b.createdAt) - new Date(a.createdAt);
+
+    if (currentSort === 'oldest') {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    } else if (currentSort === 'likes') {
+      const likesA = Array.isArray(a.likes) ? a.likes.length : 0;
+      const likesB = Array.isArray(b.likes) ? b.likes.length : 0;
+      return likesB - likesA;
+    } else { // 'newest'
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
   });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<p style="text-align:center; color:#888; margin-top:40px; letter-spacing:1px;">NO WRITINGS FOUND</p>';
+    return;
+  }
 
   filtered.forEach(art => {
     const likesList = Array.isArray(art.likes) ? art.likes : [];
     const hasLiked = currentUser && likesList.some(l => (typeof l === 'string' ? l === currentUser.uid : l.uid === currentUser.uid));
     const comments = Array.isArray(art.comments) ? art.comments : [];
+    const formattedDate = formatDate(art.createdAt);
 
+    // Read More / Truncate Logic
     const fullContent = art.content || '';
-    const isLong = fullContent.length > 300;
-    const shortContent = isLong ? fullContent.substring(0, 300) + '...' : fullContent;
+    const isLong = fullContent.length > 250;
+    const shortContent = isLong ? fullContent.substring(0, 250) + '...' : fullContent;
 
     container.innerHTML += `
       <div class="article-card ${art.isPinned ? 'pinned-card' : ''}">
         ${art.isPinned ? '<div class="pinned-tag">PINNED WORK</div>' : ''}
         <div class="card-header">
           <h2 class="article-title">${escapeHtml(art.title)}</h2>
-          <span style="color:var(--text-muted); font-size:13px;">${escapeHtml(art.subject || 'General')}</span>
+          <span class="category-badge">${escapeHtml(art.subject || 'General')}</span>
         </div>
-        <div style="font-size: 14px; color: var(--text-muted); margin-top: 5px;">
-          By ${escapeHtml(art.author || 'Anonymous')}
+        <div class="author-name">
+          By ${escapeHtml(art.author || 'Anonymous')} ${formattedDate ? '• ' + formattedDate : ''}
         </div>
+        
+        ${art.imageUrl ? `<img src="${escapeHtml(art.imageUrl)}" class="post-image" alt="Post Image">` : ''}
 
         <div id="body-short-${art.id}" class="article-body">${escapeHtml(shortContent)}</div>
         ${isLong ? `<div id="body-full-${art.id}" class="article-body" style="display:none;">${escapeHtml(fullContent)}</div>` : ''}
-        ${isLong ? `<button id="btn-more-${art.id}" class="action-btn" style="margin-bottom:15px;" onclick="toggleReadMore('${art.id}')">Read More</button>` : ''}
         
-        <div class="card-actions" style="display:flex; gap:10px; border-top:1px solid var(--card-border); padding-top:15px;">
+        ${isLong ? `<button id="btn-more-${art.id}" class="read-more-btn" onclick="toggleReadMore('${art.id}')">Read More ▾</button>` : ''}
+        
+        <div class="card-actions">
           <button class="action-btn ${hasLiked ? 'active-like' : ''}" onclick="likePost('${art.id}')">
             ${hasLiked ? 'LIKED' : 'LIKE'} (${likesList.length})
           </button>
           <button class="action-btn" onclick="toggleComments('${art.id}')">COMMENTS (${comments.length})</button>
-          ${currentUser ? `<button class="action-btn" style="color:var(--danger-color);" onclick="openReportModal('${art.id}', '${escapeHtml(art.title)}')">REPORT</button>` : ''}
         </div>
 
-        <div id="comments-${art.id}" style="display:none; margin-top:15px; padding-top:15px; border-top:1px dashed var(--card-border);">
+        <div id="comments-${art.id}" class="comments-container" style="display:none; margin-top:15px; background:#000; padding:15px; border-radius:8px; border:1px solid #222;">
           <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <input type="text" id="input-text-${art.id}" placeholder="Write a comment..." style="flex:1; padding:10px; border-radius:6px; background:var(--bg-color); color:var(--text-main); border:1px solid var(--card-border);">
-            <button class="action-btn" onclick="addComment('${art.id}')">POST</button>
+            <input type="text" id="input-text-${art.id}" placeholder="Write a comment..." style="flex:1; padding:10px; border-radius:4px; border:1px solid #333; background:#111; color:#fff;">
+            <button class="btn-primary" onclick="addComment('${art.id}')">POST</button>
           </div>
           <div>
             ${comments.map(c => `
-              <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--bg-color);">
-                <strong>${escapeHtml(c.name)}:</strong> <span style="color:var(--text-muted);">${escapeHtml(c.text)}</span>
+              <div style="margin-bottom:12px; font-size:14px; border-bottom:1px solid #222; padding-bottom:10px; color:#ddd;">
+                <strong style="color:#fff;">${escapeHtml(c.name)}:</strong> ${escapeHtml(c.text)}${(c.replies && c.replies.length > 0) ? c.replies.map(r => `
+                  <div style="margin-top:6px; margin-left:15px; font-size:13px; color:#bbb; border-left:2px solid #fff; padding-left:10px; background:#0a0a0a; padding-top:4px; padding-bottom:4px; border-radius:0 4px 4px 0;">
+                    <strong style="color:#fff;">Admin Reply:</strong> ${escapeHtml(r.text)}
+                  </div>
+                `).join('') : ''}
               </div>
             `).join('')}
           </div>
@@ -149,51 +228,122 @@ function renderArticles() {
 }
 
 function toggleReadMore(id) {
-  const shortB = document.getElementById(`body-short-${id}`);
-  const fullB = document.getElementById(`body-full-${id}`);
+  const shortBody = document.getElementById(`body-short-${id}`);
+  const fullBody = document.getElementById(`body-full-${id}`);
   const btn = document.getElementById(`btn-more-${id}`);
-  if(fullB.style.display === 'none') {
-    fullB.style.display = 'block';
-    shortB.style.display = 'none';
-    btn.innerText = 'Read Less';
+
+  if (fullBody.style.display === 'none') {
+    fullBody.style.display = 'block';
+    shortBody.style.display = 'none';
+    btn.innerText = 'Read Less ▴';
   } else {
-    fullB.style.display = 'none';
-    shortB.style.display = 'block';
-    btn.innerText = 'Read More';
+    fullBody.style.display = 'none';
+    shortBody.style.display = 'block';
+    btn.innerText = 'Read More ▾';
   }
 }
 
-// ====== Admin Tab Switcher ======
-function switchAdminTab(tabId, btnElement) {
-  document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.admin-tab-btn').forEach(el => el.classList.remove('active'));
-
-  document.getElementById(tabId).classList.add('active');
-  btnElement.classList.add('active');
-
-  if(tabId === 'tab-reports') loadReports();
+function filterCategory(cat) {
+  currentCategory = cat;
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  if(event && event.target) event.target.classList.add('active');
+  renderArticles();
 }
 
-// ====== Report System Logic ======
-function openReportModal(artId, title) {
-  selectedReportArticleId = artId;
-  document.getElementById('reportPostTitle').innerText = "Post: " + title;
-  document.getElementById('reportReason').value = '';
-  document.getElementById('reportModal').style.display = 'flex';
+if(document.getElementById('searchInput')){
+  document.getElementById('searchInput').addEventListener('input', renderArticles);
 }
-function closeReportModal() { document.getElementById('reportModal').style.display = 'none'; }
-async function submitReport() {
-  const reason = document.getElementById('reportReason').value.trim();
-  if(!reason) return;
-  await db.collection("reports").add({
-    articleId: selectedReportArticleId,
-    reportedByName: currentUser.displayName || 'Reader',
-    reason: reason,
+
+// ====== Toggle Like Logic ======
+async function likePost(id) {
+  if (!currentUser) return alert("Please sign in to like this post.");
+
+  const userDoc = await db.collection("users").doc(currentUser.uid).get();
+  if (userDoc.exists && userDoc.data().isBanned) return alert("Your account has been suspended.");
+
+  const articleRef = db.collection("articles").doc(id);
+  const doc = await articleRef.get();
+  if (!doc.exists) return;
+
+  let likesList = Array.isArray(doc.data().likes) ? doc.data().likes : [];
+  const existingIndex = likesList.findIndex(l => (typeof l === 'string' ? l === currentUser.uid : l.uid === currentUser.uid));
+
+  if (existingIndex > -1) {
+    likesList.splice(existingIndex, 1);
+  } else {
+    likesList.push({
+      uid: currentUser.uid,
+      name: currentUser.displayName || 'Reader',
+      email: currentUser.email || 'N/A'
+    });
+  }
+
+  articleRef.update({ likes: likesList });
+}
+
+function toggleComments(id) {
+  const box = document.getElementById(`comments-${id}`);
+  box.style.display = box.style.display === 'block' ? 'none' : 'block';
+}
+
+async function addComment(id) {
+  if (!currentUser) return alert("Please sign in to comment.");
+
+  const userDoc = await db.collection("users").doc(currentUser.uid).get();
+  if (userDoc.exists && userDoc.data().isBanned) return alert("Your account has been suspended.");
+
+  const textInput = document.getElementById(`input-text-${id}`);
+  const text = textInput.value.trim();
+  if (!text) return;
+
+  const newComment = {
+    id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    uid: currentUser.uid,
+    name: currentUser.displayName || 'Reader',
+    email: currentUser.email || 'N/A',
+    text: text,
+    replies: [],
     createdAt: new Date().toISOString()
-  });
-  alert("Report submitted to Raflido Studios admin team.");
-  closeReportModal();
+  };
+
+  db.collection("articles").doc(id).update({
+    comments: firebase.firestore.FieldValue.arrayUnion(newComment)
+  }).then(() => textInput.value = '');
 }
 
-// Helper to sanitize HTML tags
 function escapeHtml(t) { return t ? t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
+
+// ====== Offline Smart AI Logic ======
+function toggleAIChat() {
+  const box = document.getElementById('aiChatBox');
+  box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+}
+
+function handleChatKey(e) { if(e.key === 'Enter') sendChatMessage(); }
+
+function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const body = document.getElementById('chatBody');
+  const query = input.value.trim();
+  if(!query) return;
+
+  body.innerHTML += `<div class="chat-msg user">${escapeHtml(query)}</div>`;
+  input.value = '';
+
+  const typingId = 'typing-' + Date.now();
+  body.innerHTML += `<div id="${typingId}" class="chat-msg bot">Thinking...</div>`;
+  body.scrollTop = body.scrollHeight;
+
+  setTimeout(() => {
+    document.getElementById(typingId).remove();
+    body.innerHTML += `<div class="chat-msg bot">${getOfflineAIResponse(query)}</div>`;
+    body.scrollTop = body.scrollHeight;
+  }, 600);
+}
+
+function getOfflineAIResponse(q) {
+  q = q.toLowerCase();
+  if(q.includes("hello") || q.includes("hi")) return "Hello! How can I help you today?";
+  if(q.includes("mahfuja") || q.includes("onukto")) return "Onukto is a literature portal featuring poems, short stories, and novels by Mahfuja.";
+  return "Thank you for reaching out! You can explore stories, poems, and novels in the portal.";
+}
