@@ -12,12 +12,12 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-// ====== ENABLE OFFLINE PERSISTENCE (INSTANT LOAD) ======
+// Enable offline persistence
 db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
   if (err.code == 'failed-precondition') {
-    console.warn('Multiple tabs open, persistence enabled in first tab only.');
+    console.warn('Multiple tabs open, persistence active in first tab.');
   } else if (err.code == 'unimplemented') {
-    console.warn('Browser does not support offline persistence.');
+    console.warn('Browser does not support persistence.');
   }
 });
 
@@ -25,50 +25,79 @@ let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 let currentSort = 'newest';
+let currentPage = 1;
+const postsPerPage = 5;
+let bookmarkedIds = JSON.parse(localStorage.getItem('savedArticles') || '[]');
 
-// ====== Auto Remove Splash Screen ======
-// ====== Fast Splash Screen Removal ======
+// ====== Splash Screen Time (5 Seconds Duration) ======
 setTimeout(() => {
   const splash = document.getElementById('splashScreen');
-  if (splash) splash.remove();
-}, 3000);
   if (splash) {
     splash.style.opacity = '0';
-    splash.style.transition = 'opacity 0.4s ease';
-    setTimeout(() => splash.remove(), 400);
+    setTimeout(() => splash.remove(), 800);
   }
-}, 1200);
+}, 5000);
 
-// ====== Author Profile Loader & Modal ======
+// ====== Theme Switcher Feature ======
+function toggleTheme() {
+  document.body.classList.toggle('light-mode');
+  const btn = document.getElementById('themeToggleBtn');
+  if (document.body.classList.contains('light-mode')) {
+    if (btn) btn.innerText = "Dark Mode";
+  } else {
+    if (btn) btn.innerText = "Light Mode";
+  }
+}
+
+// ====== Author Profile Sync ======
 db.collection("settings").doc("authorProfile").onSnapshot((doc) => {
-@@ -31,6 +44,8 @@
+  if (doc.exists) {
+    const data = doc.data();
+    if (document.getElementById('modalAuthorName')) document.getElementById('modalAuthorName').innerText = data.name || "Mahfuja";
     if (document.getElementById('modalAuthorBio')) document.getElementById('modalAuthorBio').innerText = data.bio || "No biography available.";
     if (data.image && document.getElementById('modalAuthorImg')) document.getElementById('modalAuthorImg').src = data.image;
+
+    // Bottom Author Sync
+    if (document.getElementById('bottomAuthorName')) document.getElementById('bottomAuthorName').innerText = data.name || "Mahfuja";
+    if (document.getElementById('bottomAuthorBio')) document.getElementById('bottomAuthorBio').innerText = data.bio || "No biography available.";
+    if (data.image && document.getElementById('bottomAuthorImg')) document.getElementById('bottomAuthorImg').src = data.image;
   }
 }, (error) => {
-  console.log("Author profile load notice:", error);
+  console.log("Author profile notice:", error);
 });
 
 function openAuthorModal() {
-@@ -64,22 +79,26 @@
+  const modal = document.getElementById('authorModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeAuthorModal() {
+  const modal = document.getElementById('authorModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function toggleAuthorBottomDetails() {
+  const details = document.getElementById('authorBottomDetails');
+  if (details) {
+    details.style.display = details.style.display === 'block' ? 'none' : 'block';
+  }
+}
+
+// ====== Auth State & Google Sign In ======
+auth.onAuthStateChanged(async (user) => {
+  currentUser = user;
+  const loginBtn = document.getElementById('loginBtn');
+  const userBadge = document.getElementById('userBadge');
 
   if (user) {
     const userRef = db.collection("users").doc(user.uid);
-    const doc = await userRef.get();
-
-    if (doc.exists && doc.data().isBanned) {
-      alert("Your account has been suspended by the admin.");
-      auth.signOut();
-      return;
     try {
       const doc = await userRef.get();
-
       if (doc.exists && doc.data().isBanned) {
         alert("Your account has been suspended by the admin.");
         auth.signOut();
         return;
       }
-
       await userRef.set({
         uid: user.uid,
         name: user.displayName || 'Reader',
@@ -77,71 +106,70 @@ function openAuthorModal() {
         lastLogin: new Date().toISOString()
       }, { merge: true });
     } catch(e) {
-      console.log("User auth sync warning:", e);
+      console.log("User sync warning:", e);
     }
 
-    await userRef.set({
-      uid: user.uid,
-      name: user.displayName || 'Reader',
-      email: user.email,
-      photo: user.photoURL || '',
-      lastLogin: new Date().toISOString()
-    }, { merge: true });
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (userBadge) userBadge.style.display = 'flex';
+    if (document.getElementById('userName')) document.getElementById('userName').innerText = (user.displayName || 'Reader').split(' ')[0];
+    if (document.getElementById('userAvatar')) document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/30';
+  } else {
+    if (loginBtn) loginBtn.style.display = 'inline-block';
+    if (userBadge) userBadge.style.display = 'none';
+  }
+  renderArticles();
+});
 
-    if(loginBtn) loginBtn.style.display = 'none';
-    if(userBadge) userBadge.style.display = 'flex';
-    if(document.getElementById('userName')) document.getElementById('userName').innerText = (user.displayName || 'Reader').split(' ')[0];
-@@ -98,233 +117,253 @@
+function googleSignIn() {
+  auth.signInWithPopup(googleProvider).catch(err => alert("Sign in failed: " + err.message));
+}
 
 function googleSignOut() { auth.signOut(); }
 
-// ====== Fetch Articles & Render ======
-db.collection("articles").onSnapshot((snapshot) => {
-// ====== Safe Loader Timeout Handler ======
+// ====== Fetch & Render Articles with Pagination ======
 let dataLoadedOnce = false;
 setTimeout(() => {
   if (!dataLoadedOnce) {
     const loader = document.getElementById('bookLoader');
     if (loader && loader.style.display !== 'none') {
-      if (allArticles.length === 0) {
-        const container = document.getElementById('articlesGrid');
-        if (container) container.innerHTML = '<p style="text-align:center; color:#888; margin-top:40px;">Slow network connection. Showing cached data if available.</p>';
-      }
       loader.style.display = 'none';
     }
   }
 }, 4000);
 
-// ====== Fetch Articles & Render with Cache ======
 db.collection("articles").onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
   dataLoadedOnce = true;
   allArticles = [];
   snapshot.forEach((doc) => { allArticles.push({ id: doc.id, ...doc.data() }); });
 
   const loader = document.getElementById('bookLoader');
-  if(loader) loader.style.display = 'none';
+  if (loader) loader.style.display = 'none';
   renderArticles();
 }, (error) => {
   console.error("Firestore error:", error);
   const loader = document.getElementById('bookLoader');
-  if(loader) loader.style.display = 'none';
+  if (loader) loader.style.display = 'none';
 });
 
 function changeSort(val) {
   currentSort = val;
+  currentPage = 1;
   renderArticles();
 }
 
 function renderArticles() {
   const container = document.getElementById('articlesGrid');
-  if(!container) return;
+  if (!container) return;
   const searchInput = document.getElementById('searchInput');
   const searchText = searchInput ? searchInput.value.toLowerCase() : '';
 
   container.innerHTML = '';
 
-  // Filter logic
+  // Filter Logic
   let filtered = allArticles.filter(art => {
+    if (currentCategory === 'Saved') {
+      return bookmarkedIds.includes(art.id);
+    }
     const matchesCat = currentCategory === 'All' || (art.subject && art.subject.toLowerCase() === currentCategory.toLowerCase());
     const matchesSearch = (art.title && art.title.toLowerCase().includes(searchText)) || 
                           (art.author && art.author.toLowerCase().includes(searchText)) ||
@@ -149,34 +177,46 @@ function renderArticles() {
     return matchesCat && matchesSearch;
   });
 
-  // Sort logic
+  // Sort Logic
   filtered.sort((a, b) => {
     if (b.isPinned !== a.isPinned) return (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
-
     if (currentSort === 'oldest') {
       return new Date(a.createdAt) - new Date(b.createdAt);
     } else if (currentSort === 'likes') {
       const likesA = Array.isArray(a.likes) ? a.likes.length : 0;
       const likesB = Array.isArray(b.likes) ? b.likes.length : 0;
       return likesB - likesA;
-    } else { // 'newest'
+    } else {
       return new Date(b.createdAt) - new Date(a.createdAt);
     }
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = '<p style="text-align:center; color:#888; margin-top:40px; letter-spacing:1px;">NO WRITINGS FOUND</p>';
+    container.innerHTML = '<p style="text-align:center; color:var(--text-muted); margin:40px 0; letter-spacing:1px;">NO WRITINGS FOUND</p>';
+    renderPagination(0);
     return;
   }
 
-  filtered.forEach(art => {
+  // Pagination Slice Logic
+  const totalPages = Math.ceil(filtered.length / postsPerPage);
+  if (currentPage > totalPages) currentPage = 1;
+
+  const startIndex = (currentPage - 1) * postsPerPage;
+  const pageArticles = filtered.slice(startIndex, startIndex + postsPerPage);
+
+  pageArticles.forEach(art => {
     const likesList = Array.isArray(art.likes) ? art.likes : [];
     const hasLiked = currentUser && likesList.some(l => (typeof l === 'string' ? l === currentUser.uid : l.uid === currentUser.uid));
+    const isBookmarked = bookmarkedIds.includes(art.id);
     const comments = Array.isArray(art.comments) ? art.comments : [];
     const formattedDate = formatDate(art.createdAt);
 
-    // Read More / Truncate Logic
+    // Reading time feature
     const fullContent = art.content || '';
+    const wordCount = fullContent.split(/\s+/).filter(w => w.length > 0).length;
+    const readTime = Math.max(1, Math.ceil(wordCount / 180));
+
+    // Content Truncate logic
     const isLong = fullContent.length > 250;
     const shortContent = isLong ? fullContent.substring(0, 250) + '...' : fullContent;
 
@@ -187,8 +227,9 @@ function renderArticles() {
           <h2 class="article-title">${escapeHtml(art.title)}</h2>
           <span class="category-badge">${escapeHtml(art.subject || 'General')}</span>
         </div>
-        <div class="author-name">
-          By ${escapeHtml(art.author || 'Anonymous')} ${formattedDate ? '• ' + formattedDate : ''}
+        <div class="author-meta">
+          <span>By ${escapeHtml(art.author || 'Anonymous')} ${formattedDate ? ' | ' + formattedDate : ''}</span>
+          <span>${readTime} min read</span>
         </div>
         
         ${art.imageUrl ? `<img src="${escapeHtml(art.imageUrl)}" class="post-image" alt="Post Image">` : ''}
@@ -196,26 +237,29 @@ function renderArticles() {
         <div id="body-short-${art.id}" class="article-body">${escapeHtml(shortContent)}</div>
         ${isLong ? `<div id="body-full-${art.id}" class="article-body" style="display:none;">${escapeHtml(fullContent)}</div>` : ''}
         
-        ${isLong ? `<button id="btn-more-${art.id}" class="read-more-btn" onclick="toggleReadMore('${art.id}')">Read More ▾</button>` : ''}
+        ${isLong ? `<button id="btn-more-${art.id}" class="read-more-btn" onclick="toggleReadMore('${art.id}')">Read More</button>` : ''}
         
         <div class="card-actions">
           <button class="action-btn ${hasLiked ? 'active-like' : ''}" onclick="likePost('${art.id}')">
             ${hasLiked ? 'LIKED' : 'LIKE'} (${likesList.length})
           </button>
           <button class="action-btn" onclick="toggleComments('${art.id}')">COMMENTS (${comments.length})</button>
+          <button class="action-btn ${isBookmarked ? 'active-bookmark' : ''}" onclick="toggleBookmark('${art.id}')">
+            ${isBookmarked ? 'SAVED' : 'SAVE'}
+          </button>
         </div>
 
-        <div id="comments-${art.id}" class="comments-container" style="display:none; margin-top:15px; background:#000; padding:15px; border-radius:8px; border:1px solid #222;">
+        <div id="comments-${art.id}" style="display:none; margin-top:15px; background:var(--bg-color); padding:15px; border-radius:8px; border:1px solid var(--card-border);">
           <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <input type="text" id="input-text-${art.id}" placeholder="Write a comment..." style="flex:1; padding:10px; border-radius:4px; border:1px solid #333; background:#111; color:#fff;">
+            <input type="text" id="input-text-${art.id}" placeholder="Write a comment..." class="form-control" style="flex:1;">
             <button class="btn-primary" onclick="addComment('${art.id}')">POST</button>
           </div>
           <div>
             ${comments.map(c => `
-              <div style="margin-bottom:12px; font-size:14px; border-bottom:1px solid #222; padding-bottom:10px; color:#ddd;">
-                <strong style="color:#fff;">${escapeHtml(c.name)}:</strong> ${escapeHtml(c.text)}${(c.replies && c.replies.length > 0) ? c.replies.map(r => `
-                  <div style="margin-top:6px; margin-left:15px; font-size:13px; color:#bbb; border-left:2px solid #fff; padding-left:10px; background:#0a0a0a; padding-top:4px; padding-bottom:4px; border-radius:0 4px 4px 0;">
-                    <strong style="color:#fff;">Admin Reply:</strong> ${escapeHtml(r.text)}
+              <div style="margin-bottom:12px; font-size:13px; border-bottom:1px dashed var(--card-border); padding-bottom:8px; color:var(--text-main);">
+                <strong>${escapeHtml(c.name)}:</strong> ${escapeHtml(c.text)}${(c.replies && c.replies.length > 0) ? c.replies.map(r => `
+                  <div style="margin-top:6px; margin-left:15px; font-size:12px; color:var(--text-muted); border-left:2px solid var(--accent-gold); padding-left:10px;">
+                    <strong>Admin Reply:</strong> ${escapeHtml(r.text)}
                   </div>
                 `).join('') : ''}
               </div>
@@ -225,6 +269,41 @@ function renderArticles() {
       </div>
     `;
   });
+
+  renderPagination(totalPages);
+}
+
+// ====== Render Pagination Numbers (1, 2, 3, 4...) ======
+function renderPagination(totalPages) {
+  const pagContainer = document.getElementById('pagination');
+  if (!pagContainer) return;
+
+  if (totalPages <= 1) {
+    pagContainer.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+  }
+  pagContainer.innerHTML = html;
+}
+
+function goToPage(pageNum) {
+  currentPage = pageNum;
+  renderArticles();
+  window.scrollTo({ top: document.getElementById('articlesGrid').offsetTop - 80, behavior: 'smooth' });
+}
+
+function toggleBookmark(id) {
+  if (bookmarkedIds.includes(id)) {
+    bookmarkedIds = bookmarkedIds.filter(b => b !== id);
+  } else {
+    bookmarkedIds.push(id);
+  }
+  localStorage.setItem('savedArticles', JSON.stringify(bookmarkedIds));
+  renderArticles();
 }
 
 function toggleReadMore(id) {
@@ -235,23 +314,27 @@ function toggleReadMore(id) {
   if (fullBody.style.display === 'none') {
     fullBody.style.display = 'block';
     shortBody.style.display = 'none';
-    btn.innerText = 'Read Less ▴';
+    btn.innerText = 'Read Less';
   } else {
     fullBody.style.display = 'none';
     shortBody.style.display = 'block';
-    btn.innerText = 'Read More ▾';
+    btn.innerText = 'Read More';
   }
 }
 
 function filterCategory(cat) {
   currentCategory = cat;
+  currentPage = 1;
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  if(event && event.target) event.target.classList.add('active');
+  if (event && event.target) event.target.classList.add('active');
   renderArticles();
 }
 
-if(document.getElementById('searchInput')){
-  document.getElementById('searchInput').addEventListener('input', renderArticles);
+if (document.getElementById('searchInput')) {
+  document.getElementById('searchInput').addEventListener('input', () => {
+    currentPage = 1;
+    renderArticles();
+  });
 }
 
 // ====== Toggle Like Logic ======
@@ -311,21 +394,27 @@ async function addComment(id) {
   }).then(() => textInput.value = '');
 }
 
+function formatDate(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function escapeHtml(t) { return t ? t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
 
-// ====== Offline Smart AI Logic ======
+// ====== Offline AI Chatbot ======
 function toggleAIChat() {
   const box = document.getElementById('aiChatBox');
   box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
 }
 
-function handleChatKey(e) { if(e.key === 'Enter') sendChatMessage(); }
+function handleChatKey(e) { if (e.key === 'Enter') sendChatMessage(); }
 
 function sendChatMessage() {
   const input = document.getElementById('chatInput');
   const body = document.getElementById('chatBody');
   const query = input.value.trim();
-  if(!query) return;
+  if (!query) return;
 
   body.innerHTML += `<div class="chat-msg user">${escapeHtml(query)}</div>`;
   input.value = '';
@@ -335,7 +424,8 @@ function sendChatMessage() {
   body.scrollTop = body.scrollHeight;
 
   setTimeout(() => {
-    document.getElementById(typingId).remove();
+    const el = document.getElementById(typingId);
+    if (el) el.remove();
     body.innerHTML += `<div class="chat-msg bot">${getOfflineAIResponse(query)}</div>`;
     body.scrollTop = body.scrollHeight;
   }, 600);
@@ -343,7 +433,8 @@ function sendChatMessage() {
 
 function getOfflineAIResponse(q) {
   q = q.toLowerCase();
-  if(q.includes("hello") || q.includes("hi")) return "Hello! How can I help you today?";
-  if(q.includes("mahfuja") || q.includes("onukto")) return "Onukto is a literature portal featuring poems, short stories, and novels by Mahfuja.";
-  return "Thank you for reaching out! You can explore stories, poems, and novels in the portal.";
+  if (q.includes("hello") || q.includes("hi")) return "Hello! Welcome to Onukto literature portal.";
+  if (q.includes("mahfuja") || q.includes("onukto")) return "Onukto is a literature portal created by Mahfuja, featuring poems, stories, and novels.";
+  if (q.includes("raflido")) return "Raflido Studios is the developer studio behind Onukto Portal.";
+  return "Thank you for asking! Explore writings using categories or search above.";
 }
