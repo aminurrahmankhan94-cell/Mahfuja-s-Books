@@ -1,173 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - Raflido Studios</title>
-  <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-</head>
-<body>
-
-  <nav class="navbar">
-    <div class="brand-logo">ADMIN CONTROL PANEL</div>
-    <a href="index.html" class="btn-outline">Reader Portal</a>
-  </nav>
-
-  <div class="container" style="margin-top: 30px;">
-    <!-- Admin Login Card -->
-    <div id="loginSection" class="article-card" style="max-width:400px; margin: 40px auto;">
-      <h2 style="margin-bottom:20px; text-align: center; letter-spacing: 1px;">ADMIN LOGIN</h2>
-      <div class="form-group">
-        <label>User ID</label>
-        <input type="text" id="adminId" class="form-control" placeholder="Enter Admin ID">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="adminPass" class="form-control" placeholder="Enter Password">
-      </div>
-      <button onclick="handleLogin()" class="btn-primary" style="width: 100%; margin-top: 10px;">LOGIN</button>
-    </div>
-
-    <!-- Main Admin Dashboard Panel with Clean Tab System -->
-    <div id="adminPanel" style="display: none;">
-      
-      <!-- Admin Tab Navigation Menu -->
-      <div class="admin-tab-nav">
-        <button class="admin-tab-btn active" onclick="switchAdminTab(event, 'tab-overview')">Dashboard Stats</button>
-        <button class="admin-tab-btn" onclick="switchAdminTab(event, 'tab-publish')">Publish Work</button>
-        <button class="admin-tab-btn" onclick="switchAdminTab(event, 'tab-author')">Author Profile</button>
-        <button class="admin-tab-btn" onclick="switchAdminTab(event, 'tab-moderation')">Manage Posts</button>
-        <button class="admin-tab-btn" onclick="switchAdminTab(event, 'tab-readers')">Registered Readers</button>
-      </div>
-
-      <!-- TAB 1: Dashboard Overview & Stats -->
-      <div id="tab-overview" class="admin-tab-content active">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-number" id="totalPosts">0</div>
-            <div style="font-size:12px; letter-spacing:1px; color:var(--text-muted); margin-top:5px;">TOTAL POSTS</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number" id="totalUsers">0</div>
-            <div style="font-size:12px; letter-spacing:1px; color:var(--text-muted); margin-top:5px;">REGISTERED READERS</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number" id="totalLikes">0</div>
-            <div style="font-size:12px; letter-spacing:1px; color:var(--text-muted); margin-top:5px;">TOTAL LIKES</div>
-          </div>
-        </div>
-
-        <div class="article-card">
-          <h3 style="margin-bottom:10px;">System Status</h3>
-          <p style="color:var(--text-muted); font-size:14px;">Welcome to the admin panel. Manage writings, reader accounts, author bios, and moderation directly from their dedicated tabs above.</p>
-        </div>
-      </div>
-
-      <!-- TAB 2: Publish / Edit Work Form -->
-      <div id="tab-publish" class="admin-tab-content">
-        <div class="article-card" id="postFormCard">
-          <h2 id="formHeading" style="margin-bottom:20px; letter-spacing: 1px;">PUBLISH NEW WORK</h2>
-          <input type="hidden" id="editArticleId" value="">
-          <div class="form-group"><label>Title</label><input type="text" id="title" class="form-control"></div>
-          <div class="form-group"><label>Author</label><input type="text" id="author" class="form-control" placeholder="Mahfuja"></div>
-          <div class="form-group">
-            <label>Category</label>
-            <select id="subject" class="form-control">
-              <option value="Story">Story</option>
-              <option value="Poem">Poem</option>
-              <option value="Novel">Novel</option>
-              <option value="Essay">Essay</option>
-              <option value="Drama">Drama</option>
-            </select>
-          </div>
-
-          <!-- Ultra-Compressing Post Image Upload -->
-          <div class="form-group">
-            <label>Post Image (Optional)</label>
-            <input type="file" id="postImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'postImgPreview', 'postImgData', 600)">
-            <input type="hidden" id="postImgData">
-            <img id="postImgPreview" src="" style="max-height:150px; display:none; margin-top:10px; border-radius:6px; border:1px solid var(--card-border);">
-          </div>
-
-          <div class="form-group"><label>Content</label><textarea id="content" class="form-control" rows="8"></textarea></div>
-          <div style="display:flex; gap:10px;">
-            <button id="savePostBtn" onclick="saveArticle()" class="btn-primary" style="flex:1;">PUBLISH WORK</button>
-            <button id="cancelEditBtn" onclick="resetForm()" class="btn-outline" style="display:none;">CANCEL EDIT</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 3: Author Profile Settings -->
-      <div id="tab-author" class="admin-tab-content">
-        <div class="article-card">
-          <h2 style="margin-bottom:20px; letter-spacing: 1px;">EDIT AUTHOR / POET PROFILE</h2>
-          <div class="form-group"><label>Author Name</label><input type="text" id="authorNameInput" class="form-control" placeholder="Mahfuja"></div>
-          
-          <div class="form-group">
-            <label>Author Photo</label>
-            <input type="file" id="authorImgFile" class="form-control" accept="image/*" onchange="convertImageToBase64(this, 'authorImgPreview', 'authorImgData', 300)">
-            <input type="hidden" id="authorImgData">
-            <img id="authorImgPreview" src="" style="max-width:80px; max-height:80px; display:none; margin-top:10px; border-radius:50%; border:2px solid var(--accent-gold);">
-          </div>
-
-          <div class="form-group"><label>Bio / Details</label><textarea id="authorBioInput" class="form-control" rows="6" placeholder="Write biography..."></textarea></div>
-          <button onclick="saveAuthorProfile()" class="btn-primary" style="width: 100%;">SAVE PROFILE DETAILS</button>
-        </div>
-      </div>
-
-      <!-- TAB 4: Manage Posts & Moderation -->
-      <div id="tab-moderation" class="admin-tab-content">
-        <div class="article-card">
-          <h2 style="margin-bottom: 20px; letter-spacing: 1px;">MANAGE POSTS & MODERATION</h2>
-          <div style="overflow-x: auto;">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Title & Category</th>
-                  <th>Pin</th>
-                  <th>Likes</th>
-                  <th>Comments</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="adminTableBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 5: Registered Readers -->
-      <div id="tab-readers" class="admin-tab-content">
-        <div class="article-card">
-          <h2 style="margin-bottom: 20px; letter-spacing: 1px;">REGISTERED GMAIL READERS</h2>
-          <div style="overflow-x: auto;">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>User Details</th>
-                  <th>Gmail Email</th>
-                  <th>UID</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="userTableBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <footer class="site-footer">
-    <div class="footer-bottom">
-      <p>&copy; 2026 Raflido Studios. Admin Portal.</p>
-    </div>
-  </footer>
-
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script>
     const firebaseConfig = {
@@ -180,6 +11,9 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    let adminArticlesCache = [];
+    let cachedUsers = [];
 
     function handleLogin() {
       if (document.getElementById('adminId').value === 'admin' && document.getElementById('adminPass').value === '12345') {
@@ -324,7 +158,6 @@
     }
 
     function editPost(id, title, author, subject, imageUrl, content) {
-      // Auto switch to publish tab
       document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
       document.getElementById('tab-publish').classList.add('active');
@@ -368,31 +201,133 @@
       db.collection("articles").doc(id).update({ isPinned: !currentPin });
     }
 
+    // Load & Control Registered Readers
     function loadUserData() {
       db.collection("users").onSnapshot(snapshot => {
-        const tbody = document.getElementById('userTableBody');
-        tbody.innerHTML = ''; let uCount = 0;
-
+        cachedUsers = [];
         snapshot.forEach(doc => {
-          uCount++;
-          const u = doc.data();
-          const isBanned = u.isBanned || false;
-
-          tbody.innerHTML += `
-            <tr>
-              <td><strong>${u.name || 'Reader'}</strong></td>
-              <td>${u.email || 'N/A'}</td>
-              <td><small style="color:var(--text-muted);">${doc.id}</small></td>
-              <td><span style="color: ${isBanned ? 'var(--danger-color)' : '#00ff66'}; font-weight:700;">${isBanned ? 'BANNED' : 'ACTIVE'}</span></td>
-              <td>
-                <button class="${isBanned ? 'btn-primary' : 'btn-danger'}" onclick="toggleBanUser('${doc.id}', ${isBanned})">
-                  ${isBanned ? 'UNBAN' : 'BAN'}
-                </button>
-              </td>
-            </tr>`;
+          cachedUsers.push({ id: doc.id, ...doc.data() });
         });
-        document.getElementById('totalUsers').innerText = uCount;
+        renderUserTable();
       });
+    }
+
+    function renderUserTable() {
+      const tbody = document.getElementById('userTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = ''; 
+      let uCount = cachedUsers.length;
+
+      cachedUsers.forEach(u => {
+        const isBanned = u.isBanned || false;
+        const uid = u.id;
+        const userEmail = u.email || '';
+
+        // Calculate specific user likes & comments across all articles
+        let userLikes = [];
+        let userComments = [];
+
+        adminArticlesCache.forEach(art => {
+          const likes = Array.isArray(art.likes) ? art.likes : [];
+          const comments = Array.isArray(art.comments) ? art.comments : [];
+
+          if (likes.some(l => (typeof l === 'string' ? l === uid : (l.uid === uid || (l.email && l.email === userEmail))))) {
+            userLikes.push({ articleId: art.id, postTitle: art.title });
+          }
+
+          comments.forEach(c => {
+            if (c.uid === uid || (c.email && c.email === userEmail)) {
+              userComments.push({ articleId: art.id, postTitle: art.title, commentId: c.id, text: c.text });
+            }
+          });
+        });
+
+        const userRating = u.rating || 5;
+
+        tbody.innerHTML += `
+          <tr>
+            <td>
+              <strong>${escapeQuotes(u.name || 'Reader')}</strong><br>
+              <small style="color:var(--text-muted);">Rating: ${'⭐'.repeat(userRating)} (${userRating}/5)</small>
+            </td>
+            <td>${escapeQuotes(userEmail)}</td>
+            <td><small style="color:var(--text-muted);">${uid}</small></td>
+            <td><span style="color: ${isBanned ? 'var(--danger-color)' : '#00ff66'}; font-weight:700;">${isBanned ? 'BANNED' : 'ACTIVE'}</span></td>
+            <td>
+              <button class="${isBanned ? 'btn-primary' : 'btn-danger'}" style="padding:4px 8px; font-size:10px;" onclick="toggleBanUser('${uid}', ${isBanned})">
+                ${isBanned ? 'UNBAN' : 'BAN'}
+              </button>
+              <button class="btn-outline" style="padding:4px 8px; font-size:10px; margin-left:4px;" onclick="toggleUserActivity('${uid}')">
+                Activity (${userLikes.length} Likes, ${userComments.length} Comments)
+              </button>
+              <button class="btn-danger" style="padding:4px 8px; font-size:10px; margin-left:4px;" onclick="deleteUserRecord('${uid}')">Delete</button>
+            </td>
+          </tr>
+          <tr id="user-act-${uid}" style="display:none; background:var(--bg-color);">
+            <td colspan="5" style="padding:12px 15px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <strong style="font-size:11px; color:var(--accent-gold); letter-spacing:1px;">USER ACTIVITY & RATING CONTROL</strong>
+                <div>
+                  <label style="font-size:11px; color:var(--text-muted); margin-right:5px;">Set Rating:</label>
+                  <select onchange="updateUserRating('${uid}', this.value)" style="padding:2px 6px; font-size:11px; background:var(--card-bg); color:var(--text-main); border:1px solid var(--card-border); border-radius:4px;">
+                    <option value="5" ${userRating == 5 ? 'selected' : ''}>5 Stars</option>
+                    <option value="4" ${userRating == 4 ? 'selected' : ''}>4 Stars</option>
+                    <option value="3" ${userRating == 3 ? 'selected' : ''}>3 Stars</option>
+                    <option value="2" ${userRating == 2 ? 'selected' : ''}>2 Stars</option>
+                    <option value="1" ${userRating == 1 ? 'selected' : ''}>1 Star</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Liked Posts List -->
+              <div style="margin-bottom:10px;">
+                <strong style="font-size:10px; color:var(--text-muted); letter-spacing:1px;">LIKED POSTS (${userLikes.length}):</strong>
+                ${userLikes.length === 0 ? '<p style="font-size:11px; color:var(--text-muted); margin-top:3px;">No likes yet.</p>' : ''}
+                ${userLikes.map(l => `
+                  <div style="font-size:11px; margin-top:3px; background:var(--card-bg); padding:4px 8px; border-radius:3px; display:flex; justify-content:space-between; border:1px solid var(--card-border);">
+                    <span>Post: <strong>${escapeQuotes(l.postTitle)}</strong></span>
+                    <button class="btn-danger" style="padding:1px 4px; font-size:9px;" onclick="removeSpecificLike('${l.articleId}', '${uid}')">Remove Like</button>
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- User Comments List -->
+              <div>
+                <strong style="font-size:10px; color:var(--text-muted); letter-spacing:1px;">COMMENTS (${userComments.length}):</strong>
+                ${userComments.length === 0 ? '<p style="font-size:11px; color:var(--text-muted); margin-top:3px;">No comments yet.</p>' : ''}
+                ${userComments.map(c => `
+                  <div style="margin-top:6px; font-size:12px; background:var(--card-bg); padding:8px; border-radius:4px; border:1px solid var(--card-border);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <span>On <strong>${escapeQuotes(c.postTitle)}</strong>: "${escapeQuotes(c.text)}"</span>
+                      <button class="btn-danger" style="padding:2px 6px; font-size:9px;" onclick="deleteComment('${c.articleId}', '${c.commentId}')">Delete Comment</button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </td>
+          </tr>`;
+      });
+      document.getElementById('totalUsers').innerText = uCount;
+    }
+
+    function toggleUserActivity(uid) {
+      const row = document.getElementById(`user-act-${uid}`);
+      if (row) {
+        row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
+      }
+    }
+
+    function updateUserRating(uid, ratingVal) {
+      db.collection("users").doc(uid).update({ rating: parseInt(ratingVal) }).then(() => {
+        alert("User rating updated!");
+        renderUserTable();
+      });
+    }
+
+    function deleteUserRecord(uid) {
+      if (confirm("Are you sure you want to delete this user profile?")) {
+        db.collection("users").doc(uid).delete().then(() => alert("User profile deleted."));
+      }
     }
 
     function toggleBanUser(uid, currentBanned) {
@@ -401,12 +336,15 @@
 
     function loadAdminData() {
       db.collection("articles").onSnapshot(snapshot => {
+        adminArticlesCache = [];
         const tbody = document.getElementById('adminTableBody');
         tbody.innerHTML = ''; let tLikes = 0, count = 0;
 
         snapshot.forEach(doc => {
           count++; 
           const data = doc.data(); 
+          adminArticlesCache.push({ id: doc.id, ...data });
+
           const likes = Array.isArray(data.likes) ? data.likes : []; 
           const comments = Array.isArray(data.comments) ? data.comments : [];
           tLikes += likes.length;
@@ -468,6 +406,8 @@
         });
         document.getElementById('totalPosts').innerText = count;
         document.getElementById('totalLikes').innerText = tLikes;
+
+        renderUserTable();
       });
     }
 
@@ -503,7 +443,7 @@
       ref.get().then(doc => {
         if (doc.exists) {
           let likes = doc.data().likes || [];
-          likes = likes.filter(l => (typeof l === 'string' ? l !== userUid : l.uid !== userUid));
+          likes = likes.filter(l => (typeof l === 'string' ? l !== userUid : (l.uid !== userUid && l.email !== userUid)));
           ref.update({ likes });
         }
       });
@@ -526,5 +466,3 @@
 
     function escapeQuotes(str) { return str ? str.replace(/`/g, "\\`").replace(/"/g, "&quot;") : ''; }
   </script>
-</body>
-</html>
