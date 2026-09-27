@@ -12,16 +12,29 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
+// ====== ENABLE OFFLINE PERSISTENCE (INSTANT LOAD) ======
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    console.warn('Multiple tabs open, persistence enabled in first tab only.');
+  } else if (err.code == 'unimplemented') {
+    console.warn('Browser does not support offline persistence.');
+  }
+});
+
 let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
 let currentSort = 'newest';
 
-// ====== Auto Remove Splash Screen ======
+// ====== Fast Splash Screen Removal ======
 setTimeout(() => {
   const splash = document.getElementById('splashScreen');
-  if (splash) splash.remove();
-}, 3000);
+  if (splash) {
+    splash.style.opacity = '0';
+    splash.style.transition = 'opacity 0.4s ease';
+    setTimeout(() => splash.remove(), 400);
+  }
+}, 1200);
 
 // ====== Author Profile Loader & Modal ======
 db.collection("settings").doc("authorProfile").onSnapshot((doc) => {
@@ -31,6 +44,8 @@ db.collection("settings").doc("authorProfile").onSnapshot((doc) => {
     if (document.getElementById('modalAuthorBio')) document.getElementById('modalAuthorBio').innerText = data.bio || "No biography available.";
     if (data.image && document.getElementById('modalAuthorImg')) document.getElementById('modalAuthorImg').src = data.image;
   }
+}, (error) => {
+  console.log("Author profile load notice:", error);
 });
 
 function openAuthorModal() {
@@ -64,21 +79,25 @@ auth.onAuthStateChanged(async (user) => {
 
   if (user) {
     const userRef = db.collection("users").doc(user.uid);
-    const doc = await userRef.get();
+    try {
+      const doc = await userRef.get();
 
-    if (doc.exists && doc.data().isBanned) {
-      alert("Your account has been suspended by the admin.");
-      auth.signOut();
-      return;
+      if (doc.exists && doc.data().isBanned) {
+        alert("Your account has been suspended by the admin.");
+        auth.signOut();
+        return;
+      }
+
+      await userRef.set({
+        uid: user.uid,
+        name: user.displayName || 'Reader',
+        email: user.email,
+        photo: user.photoURL || '',
+        lastLogin: new Date().toISOString()
+      }, { merge: true });
+    } catch(e) {
+      console.log("User auth sync warning:", e);
     }
-
-    await userRef.set({
-      uid: user.uid,
-      name: user.displayName || 'Reader',
-      email: user.email,
-      photo: user.photoURL || '',
-      lastLogin: new Date().toISOString()
-    }, { merge: true });
 
     if(loginBtn) loginBtn.style.display = 'none';
     if(userBadge) userBadge.style.display = 'flex';
@@ -98,14 +117,34 @@ function googleSignIn() {
 
 function googleSignOut() { auth.signOut(); }
 
-// ====== Fetch Articles & Render ======
-db.collection("articles").onSnapshot((snapshot) => {
+// ====== Safe Loader Timeout Handler ======
+let dataLoadedOnce = false;
+setTimeout(() => {
+  if (!dataLoadedOnce) {
+    const loader = document.getElementById('bookLoader');
+    if (loader && loader.style.display !== 'none') {
+      if (allArticles.length === 0) {
+        const container = document.getElementById('articlesGrid');
+        if (container) container.innerHTML = '<p style="text-align:center; color:#888; margin-top:40px;">Slow network connection. Showing cached data if available.</p>';
+      }
+      loader.style.display = 'none';
+    }
+  }
+}, 4000);
+
+// ====== Fetch Articles & Render with Cache ======
+db.collection("articles").onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
+  dataLoadedOnce = true;
   allArticles = [];
   snapshot.forEach((doc) => { allArticles.push({ id: doc.id, ...doc.data() }); });
 
   const loader = document.getElementById('bookLoader');
   if(loader) loader.style.display = 'none';
   renderArticles();
+}, (error) => {
+  console.error("Firestore error:", error);
+  const loader = document.getElementById('bookLoader');
+  if(loader) loader.style.display = 'none';
 });
 
 function changeSort(val) {
