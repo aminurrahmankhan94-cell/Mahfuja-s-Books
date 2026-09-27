@@ -15,6 +15,7 @@ const googleProvider = new firebase.auth.GoogleAuthProvider();
 let currentUser = null;
 let allArticles = [];
 let currentCategory = 'All';
+let currentSort = 'newest';
 
 // ====== Auto Remove Splash Screen ======
 setTimeout(() => {
@@ -101,16 +102,16 @@ function googleSignOut() { auth.signOut(); }
 db.collection("articles").onSnapshot((snapshot) => {
   allArticles = [];
   snapshot.forEach((doc) => { allArticles.push({ id: doc.id, ...doc.data() }); });
-  
-  allArticles.sort((a, b) => {
-    if (b.isPinned !== a.isPinned) return (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
 
   const loader = document.getElementById('bookLoader');
   if(loader) loader.style.display = 'none';
   renderArticles();
 });
+
+function changeSort(val) {
+  currentSort = val;
+  renderArticles();
+}
 
 function renderArticles() {
   const container = document.getElementById('articlesGrid');
@@ -120,12 +121,28 @@ function renderArticles() {
   
   container.innerHTML = '';
 
-  const filtered = allArticles.filter(art => {
+  // Filter logic
+  let filtered = allArticles.filter(art => {
     const matchesCat = currentCategory === 'All' || (art.subject && art.subject.toLowerCase() === currentCategory.toLowerCase());
-    const matchesSearch = art.title.toLowerCase().includes(searchText) || 
+    const matchesSearch = (art.title && art.title.toLowerCase().includes(searchText)) || 
                           (art.author && art.author.toLowerCase().includes(searchText)) ||
                           (art.content && art.content.toLowerCase().includes(searchText));
     return matchesCat && matchesSearch;
+  });
+
+  // Sort logic
+  filtered.sort((a, b) => {
+    if (b.isPinned !== a.isPinned) return (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
+    
+    if (currentSort === 'oldest') {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    } else if (currentSort === 'likes') {
+      const likesA = Array.isArray(a.likes) ? a.likes.length : 0;
+      const likesB = Array.isArray(b.likes) ? b.likes.length : 0;
+      return likesB - likesA;
+    } else { // 'newest'
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
   });
 
   if (filtered.length === 0) {
@@ -138,6 +155,11 @@ function renderArticles() {
     const hasLiked = currentUser && likesList.some(l => (typeof l === 'string' ? l === currentUser.uid : l.uid === currentUser.uid));
     const comments = Array.isArray(art.comments) ? art.comments : [];
     const formattedDate = formatDate(art.createdAt);
+
+    // Read More / Truncate Logic
+    const fullContent = art.content || '';
+    const isLong = fullContent.length > 250;
+    const shortContent = isLong ? fullContent.substring(0, 250) + '...' : fullContent;
 
     container.innerHTML += `
       <div class="article-card ${art.isPinned ? 'pinned-card' : ''}">
@@ -152,7 +174,10 @@ function renderArticles() {
         
         ${art.imageUrl ? `<img src="${escapeHtml(art.imageUrl)}" class="post-image" alt="Post Image">` : ''}
 
-        <div class="article-body">${escapeHtml(art.content)}</div>
+        <div id="body-short-${art.id}" class="article-body">${escapeHtml(shortContent)}</div>
+        ${isLong ? `<div id="body-full-${art.id}" class="article-body" style="display:none;">${escapeHtml(fullContent)}</div>` : ''}
+        
+        ${isLong ? `<button id="btn-more-${art.id}" class="read-more-btn" onclick="toggleReadMore('${art.id}')">Read More ▾</button>` : ''}
         
         <div class="card-actions">
           <button class="action-btn ${hasLiked ? 'active-like' : ''}" onclick="likePost('${art.id}')">
@@ -181,6 +206,22 @@ function renderArticles() {
       </div>
     `;
   });
+}
+
+function toggleReadMore(id) {
+  const shortBody = document.getElementById(`body-short-${id}`);
+  const fullBody = document.getElementById(`body-full-${id}`);
+  const btn = document.getElementById(`btn-more-${id}`);
+
+  if (fullBody.style.display === 'none') {
+    fullBody.style.display = 'block';
+    shortBody.style.display = 'none';
+    btn.innerText = 'Read Less ▴';
+  } else {
+    fullBody.style.display = 'none';
+    shortBody.style.display = 'block';
+    btn.innerText = 'Read More ▾';
+  }
 }
 
 function filterCategory(cat) {
