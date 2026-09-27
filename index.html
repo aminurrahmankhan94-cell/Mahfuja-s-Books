@@ -39,11 +39,21 @@
       <p>A collection of thoughts, poems, stories, and novels</p>
     </header>
 
-    <!-- Search & Filter Controls -->
+    <!-- Search, Filter & Sort Controls -->
     <div class="controls-section">
-      <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Search title, author, or content...">
+      <div class="search-sort-row">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Search title, author, or content...">
+        </div>
+        <div class="sort-box">
+          <select id="sortSelect" onchange="changeSort(this.value)">
+            <option value="newest">Sort: Newest First</option>
+            <option value="oldest">Sort: Oldest First</option>
+            <option value="likes">Sort: Most Liked</option>
+          </select>
+        </div>
       </div>
+
       <div class="category-tabs">
         <button class="tab-btn active" onclick="filterCategory('All')">All</button>
         <button class="tab-btn" onclick="filterCategory('Story')">Story</button>
