@@ -1,114 +1,180 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Onukto - Literature Portal</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Animated Splash Intro Screen -->
+  <!-- Splash Screen / Intro Animation (4.5s) -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
       <h1 class="splash-title">ONUKTO</h1>
-      <p class="splash-subtitle">Developed by Raflido Studios</p>
+      <p class="splash-subtitle">Loading Literature World...</p>
     </div>
   </div>
 
-  <!-- Navigation Bar -->
-  <nav class="navbar">
+  <!-- User Control & Settings Bar -->
+  <header class="top-header">
     <div class="brand-logo">ONUKTO</div>
-    <div style="display: flex; gap: 10px; align-items: center;">
-      <button class="btn-outline" onclick="openAuthorModal()">About Author</button>
-      <button id="loginBtn" class="btn-primary" onclick="googleSignIn()">Sign In</button>
-      <div id="userBadge" class="user-badge" style="display: none;">
-        <img id="userAvatar" src="" alt="User Avatar">
-        <span id="userName">Reader</span>
-        <button onclick="googleSignOut()" class="btn-logout">Logout</button>
+    
+    <div class="user-control-bar">
+      <button id="themeToggleBtn" onclick="toggleTheme()" class="theme-btn">Dark Mode</button>
+      
+      <div id="userBadge" class="user-badge" style="display:none;">
+        <img id="userAvatar" src="" alt="User" class="avatar">
+        <span id="userName">User</span>
+        <button onclick="openUserSettingsModal()" class="btn-settings">Settings</button>
+        <button onclick="googleSignOut()" class="btn-logout">Sign Out</button>
       </div>
-      <a href="admin.html" class="btn-outline">Admin Panel</a>
+      <button id="loginBtn" onclick="googleSignIn()" class="btn-primary">Sign In with Google</button>
     </div>
-  </nav>
+  </header>
 
-  <div class="container">
-    <!-- Header Banner -->
-    <header class="header">
-      <h1>LITERATURE & POETRY</h1>
-      <p>A collection of thoughts, poems, stories, and novels</p>
-    </header>
-
-    <!-- Search, Filter & Sort Controls -->
-    <div class="controls-section">
-      <div class="search-sort-row">
-        <div class="search-box">
-          <input type="text" id="searchInput" placeholder="Search title, author, or content...">
-        </div>
-        <div class="sort-box">
-          <select id="sortSelect" onchange="changeSort(this.value)">
-            <option value="newest">Sort: Newest First</option>
-            <option value="oldest">Sort: Oldest First</option>
-            <option value="likes">Sort: Most Liked</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="category-tabs">
-        <button class="tab-btn active" onclick="filterCategory('All')">All</button>
-        <button class="tab-btn" onclick="filterCategory('Story')">Story</button>
-        <button class="tab-btn" onclick="filterCategory('Poem')">Poem</button>
-        <button class="tab-btn" onclick="filterCategory('Novel')">Novel</button>
-        <button class="tab-btn" onclick="filterCategory('Essay')">Essay</button>
-        <button class="tab-btn" onclick="filterCategory('Drama')">Drama</button>
-      </div>
+  <!-- Category & Search Bar -->
+  <section class="filter-section">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search by title, author, or keyword...">
+    </div>
+    
+    <div class="category-tabs">
+      <button class="tab-btn active" onclick="filterCategory('All')">All</button>
+      <button class="tab-btn" onclick="filterCategory('Poem')">Poem</button>
+      <button class="tab-btn" onclick="filterCategory('Story')">Story</button>
+      <button class="tab-btn" onclick="filterCategory('Novel')">Novel</button>
     </div>
 
-    <!-- Loader -->
-    <div id="bookLoader" class="loader-container">
-      <div class="spinner"></div>
-      <p>Loading gallery writings...</p>
+    <div class="sort-box">
+      <select id="sortSelect" onchange="changeSort(this.value)">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="likes">Most Liked</option>
+      </select>
     </div>
+  </section>
 
-    <!-- Articles Grid -->
+  <!-- Main Content Grid -->
+  <main class="main-container">
+    <div id="bookLoader" class="loader-box">
+      <p>Loading writings...</p>
+    </div>
     <div id="articlesGrid" class="articles-grid"></div>
+  </main>
+
+  <!-- Admin Panel with Separated Options (Tabbed) -->
+  <div id="adminPanel" class="admin-panel-container" style="display:none;">
+    <h2>Admin Dashboard</h2>
+    
+    <div class="admin-tabs">
+      <button class="admin-tab-btn active" onclick="switchAdminTab('tab-posts', this)">Manage Posts</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('tab-author', this)">Author Profile</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('tab-users', this)">Users and Ban</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('tab-reports', this)">User Reports</button>
+    </div>
+
+    <!-- Tab 1: Manage Posts -->
+    <div id="tab-posts" class="admin-tab-content active">
+      <h3>Create New Post</h3>
+      <input type="text" id="postTitle" placeholder="Post Title">
+      <select id="postCategory">
+        <option value="Poem">Poem</option>
+        <option value="Story">Story</option>
+        <option value="Novel">Novel</option>
+      </select>
+      <input type="text" id="postAuthor" placeholder="Author Name">
+      <input type="text" id="postImgUrl" placeholder="Image URL (Optional)">
+      <textarea id="postContent" placeholder="Write full text content here..."></textarea>
+      <button onclick="createNewPost()" class="btn-primary">Publish Post</button>
+
+      <h3 style="margin-top:25px;">Existing Articles</h3>
+      <div id="adminPostList"></div>
+    </div>
+
+    <!-- Tab 2: Author Profile -->
+    <div id="tab-author" class="admin-tab-content">
+      <h3>Author Profile Settings</h3>
+      <input type="text" id="authorNameInput" placeholder="Author Name">
+      <textarea id="authorBioInput" placeholder="Author Biography"></textarea>
+      <input type="text" id="authorImgInput" placeholder="Profile Image URL">
+      <button onclick="saveAuthorProfile()" class="btn-primary">Save Profile</button>
+    </div>
+
+    <!-- Tab 3: Users and Ban -->
+    <div id="tab-users" class="admin-tab-content">
+      <h3>User Management</h3>
+      <div id="adminUserList"></div>
+    </div>
+
+    <!-- Tab 4: User Reports -->
+    <div id="tab-reports" class="admin-tab-content">
+      <h3>Received Reports</h3>
+      <div id="adminReportList"></div>
+    </div>
   </div>
 
-  <!-- Author Info Modal Pop-up -->
-  <div id="authorModal" class="modal-overlay">
-    <div class="modal-content">
-      <span class="close-modal" onclick="closeAuthorModal()">&times;</span>
-      <div class="author-modal-body">
-        <img id="modalAuthorImg" src="https://via.placeholder.com/100" alt="Author Photo">
-        <h2 id="modalAuthorName">Mahfuja</h2>
-        <span class="author-tagline">Founder & Author</span>
-        <p id="modalAuthorBio">Welcome to my personal literary archive. Here you can explore my poems, short stories, and novels.</p>
+  <!-- User Settings Modal -->
+  <div id="userSettingsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <h3>User Settings</h3>
+      <div class="setting-item">
+        <label>Theme Preference:</label>
+        <button onclick="toggleTheme()" class="theme-btn">Switch Theme</button>
+      </div>
+      <div class="setting-item">
+        <label>Account Info:</label>
+        <p id="settingsUserDetail" style="color:var(--text-muted); font-size:13px;"></p>
+      </div>
+      <div style="text-align:right; margin-top:20px;">
+        <button onclick="closeUserSettingsModal()" class="btn-secondary">Close</button>
       </div>
     </div>
   </div>
 
-  <!-- AI Chat Floating Widget -->
-  <div class="ai-widget-btn" onclick="toggleAIChat()">💬 Ask Literature AI</div>
-
-  <div id="aiChatBox" class="ai-chat-box">
-    <div class="chat-header">
-      <span>Literature AI Assistant</span>
-      <span style="cursor: pointer;" onclick="toggleAIChat()">✖</span>
-    </div>
-    <div id="chatBody" class="chat-body">
-      <div class="chat-msg bot">Hi! Ask me anything about Mahfuja's poems, stories, or literature.</div>
-    </div>
-    <div class="chat-footer">
-      <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="handleChatKey(event)">
-      <button onclick="sendChatMessage()">Send</button>
+  <!-- Report Modal -->
+  <div id="reportModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <h3>Report Post</h3>
+      <p id="reportPostTitle" style="color:var(--text-muted); font-size:14px;"></p>
+      <textarea id="reportReason" placeholder="Write reason for reporting..."></textarea>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px;">
+        <button onclick="closeReportModal()" class="btn-secondary">Cancel</button>
+        <button onclick="submitReport()" class="btn-danger">Submit Report</button>
+      </div>
     </div>
   </div>
 
-  <!-- Firebase Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  
+  <!-- Page Footer with Company Credits -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <h3>ONUKTO</h3>
+        <p>A digital archive for poems, stories, and literature.</p>
+      </div>
+      
+      <div class="footer-links">
+        <h4>Quick Links</h4>
+        <a href="#" onclick="openAuthorModal(); return false;">Author Biography</a>
+        <a href="#" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">Back to Top</a>
+      </div>
+
+      <div class="footer-credits">
+        <h4>Credits and Support</h4>
+        <p>Designed and Developed by: <strong>Your Company Name</strong></p>
+        <p>Web Development and Technical Solutions</p>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2026 Onukto. All Rights Reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Firebase & App Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
