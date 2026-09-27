@@ -17,19 +17,17 @@
     </div>
   </div>
 
-  <!-- Navigation Bar -->
+  <!-- Navigation Bar (Author Info & Admin Panel Removed from Top Bar) -->
   <nav class="navbar">
     <div class="brand-logo">ONUKTO</div>
     <div style="display: flex; gap: 8px; align-items: center;">
       <button class="btn-theme" onclick="toggleTheme()" id="themeToggleBtn">Light Mode</button>
-      <button class="btn-outline" onclick="openAuthorModal()">About Author</button>
       <button id="loginBtn" class="btn-primary" onclick="googleSignIn()">Sign In</button>
       <div id="userBadge" class="user-badge" style="display: none;">
         <img id="userAvatar" src="" alt="User Avatar">
         <span id="userName">Reader</span>
         <button onclick="googleSignOut()" class="btn-outline" style="padding: 4px 8px; font-size: 11px;">Logout</button>
       </div>
-      <a href="admin.html" class="btn-outline">Admin Panel</a>
     </div>
   </nav>
 
@@ -75,7 +73,7 @@
     <!-- Articles Grid -->
     <div id="articlesGrid" class="main-container"></div>
 
-    <!-- Page Pagination Numbers (1, 2, 3, 4...) -->
+    <!-- Page Pagination Numbers -->
     <div id="pagination" class="pagination-container"></div>
 
     <!-- Clickable Author Details Section at Bottom -->
@@ -123,7 +121,7 @@
     </div>
   </div>
 
-  <!-- Site Footer with Raflido Studios Branding -->
+  <!-- Site Footer with Quick Links Preserved -->
   <footer class="site-footer">
     <div class="footer-content">
       <div class="footer-brand">
